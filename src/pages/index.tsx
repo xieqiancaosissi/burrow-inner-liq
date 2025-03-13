@@ -1,7 +1,12 @@
-export default function Home() {
-  return (
-    <div>
-      home page2
-    </div>
-  );
+import React from "react";
+import dynamic from "next/dynamic";
+const LiquidationComponent = dynamic(
+  () => import("../components/Liquidation"),
+  {
+    ssr: false,
+  }
+);
+
+export default function LiquidationIndex() {
+  return <LiquidationComponent />;
 }
