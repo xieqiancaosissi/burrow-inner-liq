@@ -87,17 +87,15 @@ export default function History() {
   }
   async function get_history_data(page: number) {
     setLoading(true);
-    const res = await getHistoryData(page, 10, sortField, sortOrder);
+    const res = await getHistoryData(
+      page,
+      10,
+      sortField,
+      sortOrder,
+      selectedLiquidationType
+    );
     if (res && res.data) {
-      let filteredData = res.data.record_list;
-      if (selectedLiquidationType !== "all") {
-        filteredData = filteredData.filter(
-          (item: { liquidation_type: string }) =>
-            item.liquidation_type === selectedLiquidationType
-        );
-      }
-      console.log(filteredData);
-      setHistoryData(filteredData);
+      setHistoryData(res.data.record_list);
       setPageCount(res.data.total_page);
       setSizeCount(res.data.total_size);
       setLoading(false);
@@ -258,7 +256,7 @@ export default function History() {
                           >
                             <option value="all">All</option>
                             <option value="liquidate">Liquidation</option>
-                            <option value="force">force close</option>
+                            <option value="force_close">Force Close</option>
                           </select>
                           <button
                             onClick={() => setIsModalOpen(false)}

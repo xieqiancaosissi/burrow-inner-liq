@@ -2908,14 +2908,15 @@ export async function getHistoryData(
   page_number = 1,
   page_size = 10,
   sort = "timestamp",
-  order = "desc"
+  order = "desc",
+  liquidation_type = "all"
 ) {
   const defaultResponse = {
     data: [],
   };
   try {
     const liquidationsResponse = await fetch(
-      `${HISTORY_API_URL}/burrow/get_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}`
+      `${HISTORY_API_URL}/burrow/get_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
     );
     const liquidationsData = await liquidationsResponse.json();
     return {
