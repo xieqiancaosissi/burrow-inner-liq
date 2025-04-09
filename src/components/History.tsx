@@ -31,7 +31,7 @@ export default function History() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allTokenPrices, setAllTokenPrices] = useState<any>({});
   useEffect(() => {
-    get_liquidations();
+    // get_liquidations();
     get_allPerice_data();
   }, []);
   useEffect(() => {
@@ -95,6 +95,31 @@ export default function History() {
       selectedLiquidationType
     );
     if (res && res.data) {
+      const tokenIds = new Set<string>();
+      res.data.record_list.forEach((record: any) => {
+        record.RepaidAssets?.forEach((asset: any) => {
+          tokenIds.add(asset.token_id);
+        });
+        record.LiquidatedAssets?.forEach((asset: any) => {
+          tokenIds.add(asset.token_id);
+        });
+      });
+
+      const requests = Array.from(tokenIds).map(async (tokenId) => {
+        return ftGetTokenMetadata(tokenId);
+      });
+      const metadatas = await Promise.all(requests);
+      const map = metadatas.reduce((acc, metadata, index) => {
+        return {
+          ...acc,
+          [Array.from(tokenIds)[index]]: {
+            ...metadata,
+            id: Array.from(tokenIds)[index],
+          },
+        };
+      }, {});
+
+      setAllTokenMetadatas(map);
       setHistoryData(res.data.record_list);
       setPageCount(res.data.total_page);
       setSizeCount(res.data.total_size);
