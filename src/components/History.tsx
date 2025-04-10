@@ -97,11 +97,23 @@ export default function History() {
     if (res && res.data) {
       const tokenIds = new Set<string>();
       res.data.record_list.forEach((record: any) => {
-        record.RepaidAssets?.forEach((asset: any) => {
-          tokenIds.add(asset.token_id);
+        const repaidAssets = Array.isArray(record.RepaidAssets) 
+          ? record.RepaidAssets 
+          : [];
+        const liquidatedAssets = Array.isArray(record.LiquidatedAssets)
+          ? record.LiquidatedAssets
+          : [];
+
+        repaidAssets.forEach((asset: any) => {
+          if (asset && asset.token_id) {
+            tokenIds.add(asset.token_id);
+          }
         });
-        record.LiquidatedAssets?.forEach((asset: any) => {
-          tokenIds.add(asset.token_id);
+        
+        liquidatedAssets.forEach((asset: any) => {
+          if (asset && asset.token_id) {
+            tokenIds.add(asset.token_id);
+          }
         });
       });
 
