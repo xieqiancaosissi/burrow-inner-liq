@@ -27,7 +27,11 @@ async function connectToNear() {
 export async function tokenContract(contractId: string): Promise<any> {
   const nearConnection = await connectToNear();
   const account = await nearConnection.account("");
-  const contractObj = new Contract(account, contractId, {
+  let contractSpecial = contractId;
+  if(contractId === "aurora"){
+    contractSpecial = "eth.bridge.near";
+  }
+  const contractObj = new Contract(account, contractSpecial, {
     viewMethods: ["ft_metadata"],
     changeMethods: [],
     useLocalViewExecution: false,
@@ -37,7 +41,11 @@ export async function tokenContract(contractId: string): Promise<any> {
 export async function REFContract(contractId: string): Promise<any> {
   const nearConnection = await connectToNear();
   const account = await nearConnection.account("");
-  const contractObj = new Contract(account, contractId, {
+  let contractSpecial = contractId;
+  if(contractId === "aurora"){
+    contractSpecial = "eth.bridge.near";
+  }
+  const contractObj = new Contract(account, contractSpecial, {
     viewMethods: ["get_pool"],
     changeMethods: [],
     useLocalViewExecution: false,
@@ -46,6 +54,9 @@ export async function REFContract(contractId: string): Promise<any> {
 }
 
 export async function ftGetTokenMetadata(id: string): Promise<TokenMetadata> {
+  if(id === "aurora"){
+    id = "eth.bridge.near";
+  }
   const contract = await tokenContract(id);
   const metadata = await contract.ft_metadata({});
   return metadata;
