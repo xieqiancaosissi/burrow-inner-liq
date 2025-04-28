@@ -2,54 +2,31 @@ import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
-const LiquidationComponent = dynamic(
-  () => import("../components/Liquidation"),
+const PendingMemeComponent = dynamic(
+  () => import("../components/PendingMeme"),
   {
     ssr: false,
   }
 );
 
-const HistoryComponent = dynamic(() => import("../components/History"), {
-  ssr: false,
-});
+const HistoryMemeComponent = dynamic(
+  () => import("../components/HistoryMeme"),
+  {
+    ssr: false,
+  }
+);
 
-export default function LiquidationIndex() {
+export default function MemePage() {
   const [activeTab, setActiveTab] = useState("index");
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <div className="w-[200px]"></div>
-        <div className="flex justify-center flex-1 w-full">
-          <div className="inline-flex bg-dark-200 p-1 rounded-2xl w-[60%]">
-            <button
-              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
-                activeTab === "index"
-                  ? "bg-green-50 text-black shadow-md"
-                  : "text-purple-50 hover:text-purple-60"
-              }`}
-              onClick={() => setActiveTab("index")}
-            >
-              Pending Liquidation
-            </button>
-            <button
-              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
-                activeTab === "history"
-                  ? "bg-green-50 text-black shadow-md"
-                  : "text-purple-50 hover:text-purple-60"
-              }`}
-              onClick={() => setActiveTab("history")}
-            >
-              History Liquidation
-            </button>
-          </div>
-        </div>
-        <div className="w-[200px] flex justify-end">
+        <div className="w-[200px] flex justify-start">
           <Link
-            href="/meme"
+            href="/"
             className="text-white transition-all duration-300 ease-in-out flex items-center space-x-2"
           >
-            <span>Go to Meme</span>
             <svg
               className="w-5 h-5"
               fill="none"
@@ -61,13 +38,43 @@ export default function LiquidationIndex() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M9 5l7 7-7 7"
+                d="M15 19l-7-7 7-7"
               />
             </svg>
+            <span>Back to Home</span>
           </Link>
         </div>
+        <div className="flex justify-center flex-1 w-full">
+          <div className="inline-flex bg-dark-200 p-1 rounded-2xl w-[60%]">
+            <button
+              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "index"
+                  ? "bg-green-50 text-black shadow-md"
+                  : "text-purple-50 hover:text-purple-60"
+              }`}
+              onClick={() => setActiveTab("index")}
+            >
+              Pending Meme
+            </button>
+            <button
+              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "history"
+                  ? "bg-green-50 text-black shadow-md"
+                  : "text-purple-50 hover:text-purple-60"
+              }`}
+              onClick={() => setActiveTab("history")}
+            >
+              History Meme
+            </button>
+          </div>
+        </div>
+        <div className="w-[200px]"></div>
       </div>
-      {activeTab === "index" ? <LiquidationComponent /> : <HistoryComponent />}
+      {activeTab === "index" ? (
+        <PendingMemeComponent />
+      ) : (
+        <HistoryMemeComponent />
+      )}
     </div>
   );
 }

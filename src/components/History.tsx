@@ -97,8 +97,8 @@ export default function History() {
     if (res && res.data) {
       const tokenIds = new Set<string>();
       res.data.record_list.forEach((record: any) => {
-        const repaidAssets = Array.isArray(record.RepaidAssets) 
-          ? record.RepaidAssets 
+        const repaidAssets = Array.isArray(record.RepaidAssets)
+          ? record.RepaidAssets
           : [];
         const liquidatedAssets = Array.isArray(record.LiquidatedAssets)
           ? record.LiquidatedAssets
@@ -109,7 +109,7 @@ export default function History() {
             tokenIds.add(asset.token_id);
           }
         });
-        
+
         liquidatedAssets.forEach((asset: any) => {
           if (asset && asset.token_id) {
             tokenIds.add(asset.token_id);
@@ -197,7 +197,7 @@ export default function History() {
         className="flex items-center border-b border-dark-100 px-6 text-purple-50 text-lg font-bold"
         style={{ height: "60px" }}
       >
-        Record List(Total: {sizeCount})
+        History Liquidation(Total: {sizeCount})
       </div>
       {loading ? (
         <BeatLoading />

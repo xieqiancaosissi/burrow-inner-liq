@@ -2965,26 +2965,19 @@ export const getLiquidationResult = async (key: string) => {
     });
 };
 
-export const getDashBoardData = async () => {
-  return await fetch(
-    `${DASH_BOARD_API_URL}/api/v1/mining/dashboard/infos?page_count=1&page_size=30`
-  )
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
-};
-
-export const getSocialDashBoardData = async () => {
-  return await fetch(`${DASH_BOARD_API_URL}/api/v1/mining/socialdashboard/info`)
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
+export const getPendingMemeData = async () => {
+  try {
+    const response = await fetch(
+      `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=LiquidatableMarginPositions&contract_id=meme-burrow.ref-labs.near`
+    );
+    const data = await response.json();
+    if (data.code === 0) {
+      const values = JSON.parse(data.data.values);
+      return values.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching pending meme data:", error);
+    return [];
+  }
 };

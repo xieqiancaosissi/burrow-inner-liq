@@ -28,7 +28,7 @@ export async function tokenContract(contractId: string): Promise<any> {
   const nearConnection = await connectToNear();
   const account = await nearConnection.account("");
   let contractSpecial = contractId;
-  if(contractId === "aurora"){
+  if (contractId === "aurora") {
     contractSpecial = "eth.bridge.near";
   }
   const contractObj = new Contract(account, contractSpecial, {
@@ -42,7 +42,7 @@ export async function REFContract(contractId: string): Promise<any> {
   const nearConnection = await connectToNear();
   const account = await nearConnection.account("");
   let contractSpecial = contractId;
-  if(contractId === "aurora"){
+  if (contractId === "aurora") {
     contractSpecial = "eth.bridge.near";
   }
   const contractObj = new Contract(account, contractSpecial, {
@@ -54,7 +54,7 @@ export async function REFContract(contractId: string): Promise<any> {
 }
 
 export async function ftGetTokenMetadata(id: string): Promise<TokenMetadata> {
-  if(id === "aurora"){
+  if (id === "aurora") {
     id = "eth.bridge.near";
   }
   const contract = await tokenContract(id);
