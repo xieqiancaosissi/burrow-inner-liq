@@ -47,7 +47,7 @@ export default function PendingMeme() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // 每30秒更新一次
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -64,7 +64,7 @@ export default function PendingMeme() {
         className="flex items-center border-b border-dark-100 px-6 text-purple-50 text-lg font-bold"
         style={{ height: "60px" }}
       >
-        Pending Meme (Total: {data.length})
+        Pending Meme Liquidation (Total: {data.length})
         <p className="ml-2">
           {timestamp !== null ? formatTimestamp(timestamp) : ""}
         </p>

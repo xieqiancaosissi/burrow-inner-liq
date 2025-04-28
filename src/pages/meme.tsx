@@ -54,7 +54,7 @@ export default function MemePage() {
               }`}
               onClick={() => setActiveTab("index")}
             >
-              Pending Meme
+              Pending Meme Liquidation
             </button>
             <button
               className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
@@ -64,7 +64,7 @@ export default function MemePage() {
               }`}
               onClick={() => setActiveTab("history")}
             >
-              History Meme
+              History Meme Liquidation
             </button>
           </div>
         </div>
