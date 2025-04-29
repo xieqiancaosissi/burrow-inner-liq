@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Big from "big.js";
-import { getLiquidations } from "../services/api";
-import {
-  ILiquidation,
-  IAsset,
-  TokenMetadata,
-  ISortkey,
-  IAssetsByType,
-  IPool,
-} from "../interface/common";
-import { ftGetTokenMetadata, get_pool } from "../services/near";
-import { format_usd } from "../utils/number";
 import Modal from "react-modal";
-import { SortIcon } from "../components/Icons";
-import { BeatLoading } from "../components/Loading";
+import { IAsset, IAssetsByType, ILiquidation, IPool, ISortkey, TokenMetadata } from "@/interface/common";
+import { getLiquidations } from "@/services/api";
+import { LP_ASSET_MARK } from "@/services/config";
+import { ftGetTokenMetadata, get_pool } from "@/services/near";
+import { BeatLoading } from "../Loading";
+import { format_usd } from "@/utils/number";
+import { SortIcon } from "../Icons";
 import { formatTimestamp } from "@/utils/time";
-import { LP_ASSET_MARK } from "../services/config";
 Modal.defaultStyles = {
   overlay: {
     position: "fixed",
@@ -58,6 +51,7 @@ export default function Home(props: any) {
   async function get_liquidations() {
     let liquidations;
     const res = await getLiquidations();
+    console.log(res,'res')
     liquidations = res.data;
     setTimestamp(res.timestamp);
     const lpAssetIds: any = new Set([]);

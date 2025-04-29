@@ -1,46 +1,101 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
-const LiquidationComponent = dynamic(
-  () => import("../components/Liquidation"),
+const NormalLiquidationComponent = dynamic(
+  () => import("../components/main/NormalLiquidation"),
   {
     ssr: false,
   }
 );
 
-const HistoryComponent = dynamic(() => import("../components/History"), {
-  ssr: false,
-});
+const MarginLiquidationComponent = dynamic(
+  () => import("../components/main/MarginLiquidation"),
+  {
+    ssr: false,
+  }
+);
+
+const NormalHistoryComponent = dynamic(
+  () => import("../components/main/NormalHistory"),
+  {
+    ssr: false,
+  }
+);
+
+const MarginHistoryComponent = dynamic(
+  () => import("../components/main/MarginHistory"),
+  {
+    ssr: false,
+  }
+);
 
 export default function LiquidationIndex() {
-  const [activeTab, setActiveTab] = useState("index");
+  const [activeTab, setActiveTab] = useState("normal");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const savedTab = localStorage.getItem("mainActiveTab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+    setIsLoading(false);
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    localStorage.setItem("mainActiveTab", tab);
+  };
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div className="w-[200px]"></div>
         <div className="flex justify-center flex-1 w-full">
-          <div className="inline-flex bg-dark-200 p-1 rounded-2xl w-[60%]">
+          <div className="inline-flex bg-dark-200 p-1 rounded-2xl w-[80%]">
             <button
-              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
-                activeTab === "index"
+              className={`px-6 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "normal"
                   ? "bg-green-50 text-black shadow-md"
                   : "text-purple-50 hover:text-purple-60"
               }`}
-              onClick={() => setActiveTab("index")}
+              onClick={() => handleTabChange("normal")}
             >
-              Pending Liquidation
+              Normal Position
             </button>
             <button
-              className={`px-8 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
-                activeTab === "history"
+              className={`px-6 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "margin"
                   ? "bg-green-50 text-black shadow-md"
                   : "text-purple-50 hover:text-purple-60"
               }`}
-              onClick={() => setActiveTab("history")}
+              onClick={() => handleTabChange("margin")}
             >
-              History Liquidation
+              Margin Position
+            </button>
+            <button
+              className={`px-6 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "normalHistory"
+                  ? "bg-green-50 text-black shadow-md"
+                  : "text-purple-50 hover:text-purple-60"
+              }`}
+              onClick={() => handleTabChange("normalHistory")}
+            >
+              Normal History
+            </button>
+            <button
+              className={`px-6 py-3 rounded-xl transition-all duration-300 ease-in-out flex-1 ${
+                activeTab === "marginHistory"
+                  ? "bg-green-50 text-black shadow-md"
+                  : "text-purple-50 hover:text-purple-60"
+              }`}
+              onClick={() => handleTabChange("marginHistory")}
+            >
+              Margin History
             </button>
           </div>
         </div>
@@ -67,7 +122,10 @@ export default function LiquidationIndex() {
           </Link>
         </div>
       </div>
-      {activeTab === "index" ? <LiquidationComponent /> : <HistoryComponent />}
+      {activeTab === "normal" && <NormalLiquidationComponent />}
+      {activeTab === "margin" && <MarginLiquidationComponent />}
+      {activeTab === "normalHistory" && <NormalHistoryComponent />}
+      {activeTab === "marginHistory" && <MarginHistoryComponent />}
     </div>
   );
 }

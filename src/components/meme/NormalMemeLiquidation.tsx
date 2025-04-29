@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getPendingMemeData } from "../services/api";
 import { formatTimestamp } from "@/utils/time";
-import { BeatLoading } from "./Loading";
+import { getPendingMemeData } from "@/services/api";
+import { BeatLoading } from "../Loading";
 
 interface PendingMemeData {
   debt_ratio: string;

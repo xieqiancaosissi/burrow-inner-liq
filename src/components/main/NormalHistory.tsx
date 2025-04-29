@@ -6,14 +6,14 @@ import {
   getTxId,
 } from "@/services/api";
 import ReactPaginate from "react-paginate";
-import { BeatLoading } from "./Loading";
 import { formatTimestamp } from "@/utils/time";
-import { CopyIcon, NEAR_META_DATA, SortIcon } from "./Icons";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { LP_ASSET_MARK } from "@/services/config";
 import { IAsset, IPool } from "@/interface/common";
 import { ftGetTokenMetadata, get_pool } from "@/services/near";
 import { toReadableDecimalsNumber, toReadableNumber } from "@/utils/number";
+import { BeatLoading } from "../Loading";
+import { CopyIcon, NEAR_META_DATA, SortIcon } from "../Icons";
 
 export default function History() {
   const [historyData, setHistoryData] = useState<any[]>([]);
