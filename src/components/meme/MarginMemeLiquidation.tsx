@@ -83,54 +83,30 @@ export default function MarginMemeLiquidation() {
           "meme-burrow.ref-labs.near"
         );
 
-        if (!result?.data?.length) {
-          return;
-        }
-
-        const validItems = result.data.filter((item: any) => 
-          item && 
-          item.pos_id &&
-          item.debt?.token_id &&
-          item.collateral?.token_id &&
-          item.position?.token_id
-        );
-
-        if (validItems.length === 0) {
-          return;
-        }
-
         const tokenIds = new Set<string>();
-        validItems.forEach((item: any) => {
+        result.data.forEach((item: any) => {
           tokenIds.add(item.debt.token_id);
           tokenIds.add(item.collateral.token_id);
           tokenIds.add(item.position.token_id);
         });
 
         const metadataPromises = Array.from(tokenIds).map(async (tokenId) => {
-          try {
-            return await ftGetTokenMetadata(tokenId);
-          } catch (error) {
-            return null;
-          }
+          return ftGetTokenMetadata(tokenId);
         });
-
         const metadatas = await Promise.all(metadataPromises);
         const metadataMap = metadatas.reduce<Record<string, TokenMetadata>>(
           (acc, metadata, index) => {
             const tokenId = Array.from(tokenIds)[index];
-            if (tokenId && metadata) {
+            if (tokenId) {
               acc[tokenId] = metadata;
             }
             return acc;
           },
           {}
         );
+        setAllTokenMetadatas(metadataMap);
 
-        if (Object.keys(metadataMap).length > 0) {
-          setAllTokenMetadatas(metadataMap);
-        }
-
-        const marginData = validItems.map((item: any) => {
+        const marginData = result.data.map((item: any) => {
           const processAsset = (asset: any) => {
             const tokenMetadata =
               asset.token_id === "wrap.near"
@@ -138,7 +114,7 @@ export default function MarginMemeLiquidation() {
                 : metadataMap[asset.token_id] || {};
             const tokenPrice = allTokenPrices[asset.token_id];
             const decimals = tokenMetadata?.decimals || 24;
-            const amount = toReadableDecimalsNumber(decimals, asset.amount || "0");
+            const amount = toReadableDecimalsNumber(decimals, asset.amount);
             const value = tokenPrice
               ? (parseFloat(amount) * tokenPrice.price).toFixed(5)
               : "0.00000";
@@ -163,11 +139,8 @@ export default function MarginMemeLiquidation() {
             type: item.type,
           };
         });
-
-        if (marginData.length > 0) {
-          setData(marginData);
-          setTimestamp(result.timestamp);
-        }
+        setData(marginData);
+        setTimestamp(result.timestamp);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -176,8 +149,7 @@ export default function MarginMemeLiquidation() {
     };
 
     fetchData();
-
-    const interval = setInterval(fetchData, 6000);
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [allTokenPrices]);
 
