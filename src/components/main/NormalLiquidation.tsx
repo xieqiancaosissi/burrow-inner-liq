@@ -2,7 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Big from "big.js";
 import Modal from "react-modal";
-import { IAsset, IAssetsByType, ILiquidation, IPool, ISortkey, TokenMetadata } from "@/interface/common";
+import {
+  IAsset,
+  IAssetsByType,
+  ILiquidation,
+  IPool,
+  ISortkey,
+  TokenMetadata,
+} from "@/interface/common";
 import { getLiquidations } from "@/services/api";
 import { LP_ASSET_MARK } from "@/services/config";
 import { ftGetTokenMetadata, get_pool } from "@/services/near";
@@ -32,7 +39,7 @@ Modal.defaultStyles = {
     outline: "none",
   },
 };
-export default function Home(props: any) {
+export default function NormalLiquidation(props: any) {
   const router = useRouter();
   const [liquidations, setLiquidations] = useState<ILiquidation[]>([]);
   const [assetsDetail, setAssetsDetail] = useState<IAssetsByType | null>(null);
@@ -50,8 +57,11 @@ export default function Home(props: any) {
   }, []);
   async function get_liquidations() {
     let liquidations;
-    const res = await getLiquidations();
-    console.log(res,'res')
+    const res = await getLiquidations(
+      "LiquidatableAccountViewInfos",
+      "contract.main.burrow.near"
+    );
+    console.log(res, "res");
     liquidations = res.data;
     setTimestamp(res.timestamp);
     const lpAssetIds: any = new Set([]);
@@ -161,7 +171,9 @@ export default function Home(props: any) {
     setLiquidations(sortedLiquidations);
   }
   function handleDetailsClick(accountId: string, position: string) {
-    router.push(`/details?accountId=${accountId}&position=${position}`);
+    router.push(
+      `/details?accountId=${accountId}&position=${position}&contract_id=contract.main.burrow.near&priceOracleId=priceoracle.near`
+    );
   }
   return (
     <div

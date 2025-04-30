@@ -31,18 +31,29 @@ export default function DetailPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get("accountId")!;
     const position = urlParams.get("position")!;
+    const contract_id = urlParams.get("contract_id")!;
+    const priceOracleId = urlParams.get("priceOracleId")!;
     setAllTokenMetadatas(
       JSON.parse(localStorage.getItem("allTokenMetadatas")!)
     );
     setLpAssets(JSON.parse(localStorage.getItem("lpAssets")!));
     if (accountId) {
       setAccountId(accountId);
-      getLiquidationDetail(accountId, position).then((data) => {
-        setLiquidationDetail(data);
+      getLiquidationDetail(
+        accountId,
+        position,
+        contract_id,
+        priceOracleId
+      ).then((data) => {
+        console.log("Liquidation detail:", data);
+        setLiquidationDetail({
+          ...data,
+          contract_id: contract_id,
+          priceOracleId: priceOracleId,
+        });
       });
     }
   }, []);
-
   const handleRepayRatioChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -81,7 +92,9 @@ export default function DetailPage() {
         liquidationDetail.position,
         selectedCollateralTokenId,
         selectedBorrowedTokenId,
-        numericRepayRatio
+        numericRepayRatio,
+        liquidationDetail.contract_id,
+        liquidationDetail.priceOracleId
       );
       if (result.error) {
         console.error(result.error);
@@ -109,7 +122,9 @@ export default function DetailPage() {
         selectedCollateralTokenId,
         selectedBorrowedTokenId,
         numericRepayValue,
-        numericTargetHealthFactor
+        numericTargetHealthFactor,
+        liquidationDetail.contract_id,
+        liquidationDetail.priceOracleId
       );
       if (result.error) {
         console.error(result.error);
@@ -127,9 +142,16 @@ export default function DetailPage() {
       className="text-white bg-dark-200 rounded-lg p-4"
       style={{ maxWidth: "76vw", margin: "30px auto 50px auto" }}
     >
-      <Link href="/" className="flex items-center text-base mb-4">
+      <Link
+        href={
+          liquidationDetail?.contract_id === "meme-burrow.ref-labs.near"
+            ? "/meme"
+            : "/"
+        }
+        className="flex items-center text-base mb-4"
+      >
         <span className="mr-2">&#8592;</span>
-        <p>Home</p>
+        <p>Back</p>
       </Link>
       <div className="ml-2 flex items-center">
         <p>accountId:</p>

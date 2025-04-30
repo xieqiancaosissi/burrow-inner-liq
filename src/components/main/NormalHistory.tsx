@@ -39,7 +39,10 @@ export default function History() {
   }, [currentPage, sortField, sortOrder, selectedLiquidationType]);
   async function get_liquidations() {
     let liquidations;
-    const res = await getLiquidations();
+    const res = await getLiquidations(
+      "LiquidatableAccountViewInfos",
+      "contract.main.burrow.near"
+    );
     liquidations = res.data;
     const lpAssetIds: any = new Set([]);
     const tokenIdList = liquidations.reduce((acc: any, cur: any) => {

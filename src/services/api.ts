@@ -7,23 +7,27 @@ const {
   LIQUIDATION_RESULT_API_URL,
   DASH_BOARD_API_URL,
 } = config;
-export async function getLiquidations(): Promise<ILiquidationResponse> {
+export async function getLiquidations(
+  key: string,
+  contract_id: string
+): Promise<ILiquidationResponse> {
   const defaultResponse: ILiquidationResponse = {
     timestamp: 0,
     data: [],
   };
   try {
     const liquidationsResponse = await fetch(
-      `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=LiquidatableAccountViewInfos&contract_id=contract.main.burrow.near`
+      `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}&contract_id=${contract_id}`
     );
     const liquidationsData = await liquidationsResponse.json();
-
-    const parsedData = JSON.parse(liquidationsData.data);
-    console.log(parsedData,'parsedData')
-    return {
-      timestamp: parsedData.timestamp,
-      data: parsedData.data.values,
-    };
+    if (liquidationsData.code === 0) {
+      const parsedData = JSON.parse(liquidationsData.data.values);
+      return {
+        timestamp: parsedData.timestamp,
+        data: parsedData.data,
+      };
+    }
+    return defaultResponse;
   } catch (error) {
     console.error("Error fetching liquidations:", error);
     return defaultResponse;
@@ -31,10 +35,12 @@ export async function getLiquidations(): Promise<ILiquidationResponse> {
 }
 export async function getLiquidationDetail(
   accountId: string,
-  position: string
+  position: string,
+  contract_id: string,
+  priceOracleId: string
 ): Promise<ILiquidation[]> {
   const liquidationDetail = await fetch(
-    `${LIQUIDATION_API_URL}/liquidation/account/${accountId}/${position}`
+    `${LIQUIDATION_API_URL}/liquidation/account/${accountId}/${position}/${contract_id}/${priceOracleId}`
   )
     .then((res) => res.json())
     .catch(() => {
@@ -52,7 +58,9 @@ export async function calcByRepayRatio(
   position: string,
   selectedCollateralTokenId: string,
   selectedBorrowedTokenId: string,
-  repayRatio: number
+  repayRatio: number,
+  contract_id: string,
+  priceOracleId: string
 ): Promise<any> {
   const requestData = {
     accountId: accountId,
@@ -60,11 +68,13 @@ export async function calcByRepayRatio(
     collateralToken: selectedCollateralTokenId,
     borrowedToken: selectedBorrowedTokenId,
     repayRatio: repayRatio,
+    contract_id: contract_id,
+    priceOracleId: priceOracleId,
   };
 
   try {
     const response = await fetch(
-      `${LIQUIDATION_API_URL}/liquidation/calc-by-repay-ratio`,
+      `${LIQUIDATION_API_URL}/liquidation/calc-by-repay-ratio/${contract_id}`,
       {
         method: "POST",
         headers: {
@@ -89,7 +99,9 @@ export async function calcByHealthFactor(
   selectedCollateralTokenId: string,
   selectedBorrowedTokenId: string,
   repayValue: number,
-  targetHealthFactor: number
+  targetHealthFactor: number,
+  contract_id: string,
+  priceOracleId: string
 ): Promise<any> {
   const requestData = {
     accountId: accountId,
@@ -98,11 +110,13 @@ export async function calcByHealthFactor(
     borrowedToken: selectedBorrowedTokenId,
     repayValue: repayValue,
     targetHealthFactor: targetHealthFactor,
+    contract_id: contract_id,
+    priceOracleId: priceOracleId,
   };
 
   try {
     const response = await fetch(
-      `${LIQUIDATION_API_URL}/liquidation/generate-liquidation-command`,
+      `${LIQUIDATION_API_URL}/liquidation/generate-liquidation-command/${contract_id}`,
       {
         method: "POST",
         headers: {
@@ -167,34 +181,4 @@ export const getPerice = async () => {
     .catch(() => {
       return [];
     });
-};
-
-export const getLiquidationResult = async (key: string) => {
-  return await fetch(
-    `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}`
-  )
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
-};
-
-export const getPendingMemeData = async () => {
-  try {
-    const response = await fetch(
-      `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=LiquidatableMarginPositions&contract_id=meme-burrow.ref-labs.near`
-    );
-    const data = await response.json();
-    if (data.code === 0) {
-      const values = JSON.parse(data.data.values);
-      return values.data;
-    }
-    return [];
-  } catch (error) {
-    console.error("Error fetching pending meme data:", error);
-    return [];
-  }
 };
