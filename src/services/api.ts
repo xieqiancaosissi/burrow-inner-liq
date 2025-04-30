@@ -182,3 +182,16 @@ export const getPerice = async () => {
       return [];
     });
 };
+
+export const getLiquidationResult = async (key: string) => {
+  return await fetch(
+    `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}`
+  )
+    .then(async (res) => {
+      const data = await res.json();
+      return data;
+    })
+    .catch(() => {
+      return [];
+    });
+};
