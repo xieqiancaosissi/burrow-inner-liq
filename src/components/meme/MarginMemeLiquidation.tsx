@@ -3,11 +3,13 @@ import { formatTimestamp } from "@/utils/time";
 import { getLiquidations, getPerice } from "@/services/api";
 import { BeatLoading } from "../Loading";
 import { toReadableDecimalsNumber } from "@/utils/number";
-import { NEAR_META_DATA } from "../Icons";
+import { NEAR_META_DATA, CopyIcon } from "../Icons";
 import { ftGetTokenMetadata } from "@/services/near";
 import { TokenMetadata } from "@/interface/common";
+import CopyToClipboard from "react-copy-to-clipboard";
 
 interface PendingMemeData {
+  pos_id: string;
   debt_ratio: string;
   debt: {
     token_id: string;
@@ -55,6 +57,14 @@ export default function MarginMemeLiquidation() {
   const [allTokenMetadatas, setAllTokenMetadatas] = useState<
     Record<string, TokenMetadata>
   >({});
+  const [showCopyTooltip, setShowCopyTooltip] = useState<Record<string, boolean>>({});
+
+  const handleCopy = (identifier: string) => {
+    setShowCopyTooltip((prev) => ({ ...prev, [identifier]: true }));
+    setTimeout(() => {
+      setShowCopyTooltip((prev) => ({ ...prev, [identifier]: false }));
+    }, 500);
+  };
 
   useEffect(() => {
     get_allPerice_data();
@@ -119,6 +129,7 @@ export default function MarginMemeLiquidation() {
           };
 
           return {
+            pos_id: item.pos_id,
             debt_ratio: item.debt_ratio,
             debt: processAsset(item.debt),
             collateral: processAsset(item.collateral),
@@ -149,7 +160,7 @@ export default function MarginMemeLiquidation() {
   return (
     <div
       className="text-white bg-dark-200 rounded-lg"
-      style={{ maxWidth: "60vw", margin: "30px auto 50px auto" }}
+      style={{ maxWidth: "76vw", margin: "30px auto 50px auto" }}
     >
       <div
         className="flex items-center border-b border-dark-100 px-6 text-purple-50 text-lg font-bold"
@@ -164,6 +175,7 @@ export default function MarginMemeLiquidation() {
         <table className="commonTable">
           <thead>
             <tr>
+              <th>Pos ID</th>
               <th>Position</th>
               <th>Debt Ratio</th>
               <th>Debt</th>
@@ -177,6 +189,24 @@ export default function MarginMemeLiquidation() {
             {data.length > 0 ? (
               data.map((item, index) => (
                 <tr key={index}>
+                  <td className="w-[300px] whitespace-nowrap">
+                    <div className="flex items-center relative cursor-pointer">
+                      <div className="justify-self-start overflow-hidden w-64 whitespace-nowrap text-ellipsis">
+                        <span>{item.pos_id}</span>
+                      </div>
+                      <CopyToClipboard
+                        text={item.pos_id}
+                        onCopy={() => handleCopy(index + "pos_id")}
+                      >
+                        <CopyIcon />
+                      </CopyToClipboard>
+                      {showCopyTooltip[index + "pos_id"] && (
+                        <span className="absolute -top-6 bg-black text-white text-xs py-1 px-2 rounded">
+                          Copied!
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="w-[300px] whitespace-nowrap">
                     <div>{item.position.symbol}</div>
                     <div className="text-gray-400 text-sm">
