@@ -67,22 +67,25 @@ export default function MarginMemeLiquidation() {
   };
 
   useEffect(() => {
-    get_allPerice_data();
-  }, []);
+    let isSubscribed = true;
 
-  const get_allPerice_data = async () => {
-    const prices = await getPerice();
-    setAllTokenPrices(prices);
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchAllData = async () => {
       try {
+        setLoading(true);
+        
+        // 1. 首先获取价格数据
+        const prices = await getPerice();
+        if (!isSubscribed) return;
+        setAllTokenPrices(prices);
+
+        // 2. 然后获取清算数据
         const result = await getLiquidations(
           "LiquidatableMarginPositions",
           "meme-burrow.ref-labs.near"
         );
+        if (!isSubscribed) return;
 
+        // 3. 收集所有 token IDs
         const tokenIds = new Set<string>();
         result.data.forEach((item: any) => {
           tokenIds.add(item.debt.token_id);
@@ -90,10 +93,13 @@ export default function MarginMemeLiquidation() {
           tokenIds.add(item.position.token_id);
         });
 
+        // 4. 获取 token metadata
         const metadataPromises = Array.from(tokenIds).map(async (tokenId) => {
           return ftGetTokenMetadata(tokenId);
         });
         const metadatas = await Promise.all(metadataPromises);
+        if (!isSubscribed) return;
+
         const metadataMap = metadatas.reduce<Record<string, TokenMetadata>>(
           (acc, metadata, index) => {
             const tokenId = Array.from(tokenIds)[index];
@@ -106,13 +112,14 @@ export default function MarginMemeLiquidation() {
         );
         setAllTokenMetadatas(metadataMap);
 
+        // 5. 处理数据
         const marginData = result.data.map((item: any) => {
           const processAsset = (asset: any) => {
             const tokenMetadata =
               asset.token_id === "wrap.near"
                 ? NEAR_META_DATA
                 : metadataMap[asset.token_id] || {};
-            const tokenPrice = allTokenPrices[asset.token_id];
+            const tokenPrice = prices[asset.token_id];
             const decimals = tokenMetadata?.decimals || 24;
             const amount = toReadableDecimalsNumber(decimals, asset.amount);
             const value = tokenPrice
@@ -139,19 +146,27 @@ export default function MarginMemeLiquidation() {
             type: item.type,
           };
         });
+
+        if (!isSubscribed) return;
         setData(marginData);
         setTimestamp(result.timestamp);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [allTokenPrices]);
+    fetchAllData();
+    const interval = setInterval(fetchAllData, 30000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   if (loading) {
     return <BeatLoading />;
