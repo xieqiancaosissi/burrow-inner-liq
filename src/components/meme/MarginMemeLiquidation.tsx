@@ -57,7 +57,9 @@ export default function MarginMemeLiquidation() {
   const [allTokenMetadatas, setAllTokenMetadatas] = useState<
     Record<string, TokenMetadata>
   >({});
-  const [showCopyTooltip, setShowCopyTooltip] = useState<Record<string, boolean>>({});
+  const [showCopyTooltip, setShowCopyTooltip] = useState<
+    Record<string, boolean>
+  >({});
 
   const handleCopy = (identifier: string) => {
     setShowCopyTooltip((prev) => ({ ...prev, [identifier]: true }));
@@ -72,20 +74,17 @@ export default function MarginMemeLiquidation() {
     const fetchAllData = async () => {
       try {
         setLoading(true);
-        
-        // 1. 首先获取价格数据
+
         const prices = await getPerice();
         if (!isSubscribed) return;
         setAllTokenPrices(prices);
 
-        // 2. 然后获取清算数据
         const result = await getLiquidations(
           "LiquidatableMarginPositions",
           "meme-burrow.ref-labs.near"
         );
         if (!isSubscribed) return;
 
-        // 3. 收集所有 token IDs
         const tokenIds = new Set<string>();
         result.data.forEach((item: any) => {
           tokenIds.add(item.debt.token_id);
@@ -93,7 +92,6 @@ export default function MarginMemeLiquidation() {
           tokenIds.add(item.position.token_id);
         });
 
-        // 4. 获取 token metadata
         const metadataPromises = Array.from(tokenIds).map(async (tokenId) => {
           return ftGetTokenMetadata(tokenId);
         });
@@ -112,7 +110,6 @@ export default function MarginMemeLiquidation() {
         );
         setAllTokenMetadatas(metadataMap);
 
-        // 5. 处理数据
         const marginData = result.data.map((item: any) => {
           const processAsset = (asset: any) => {
             const tokenMetadata =

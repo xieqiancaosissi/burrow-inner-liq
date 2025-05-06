@@ -122,10 +122,14 @@ export default function LiquidationIndex() {
           </Link>
         </div>
       </div>
-      {activeTab === "normal" && <NormalLiquidationComponent />}
-      {activeTab === "margin" && <MarginLiquidationComponent />}
-      {activeTab === "normalHistory" && <NormalHistoryComponent />}
-      {activeTab === "marginHistory" && <MarginHistoryComponent />}
+      {activeTab === "normal" && <NormalLiquidationComponent key="normal" />}
+      {activeTab === "margin" && <MarginLiquidationComponent key="margin" />}
+      {activeTab === "normalHistory" && (
+        <NormalHistoryComponent key="normalHistory" />
+      )}
+      {activeTab === "marginHistory" && (
+        <MarginHistoryComponent key="marginHistory" />
+      )}
     </div>
   );
 }

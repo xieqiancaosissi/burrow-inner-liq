@@ -195,3 +195,53 @@ export const getLiquidationResult = async (key: string) => {
       return [];
     });
 };
+
+export const getMemeLiquidateRecordPage = async (
+  page_number = 1,
+  page_size = 10,
+  sort = "timestamp",
+  order = "desc",
+  liquidation_type = "all"
+) => {
+  const defaultResponse = {
+    data: [],
+  };
+  try {
+    const response = await fetch(
+      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}
+      &page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
+    );
+    const data = await response.json();
+    return {
+      data: data,
+    };
+  } catch (error) {
+    console.error("Error fetching meme liquidations:", error);
+    return defaultResponse;
+  }
+};
+
+export const getMarginLiquidateLog = async (
+  page_number = 1,
+  page_size = 10,
+  sort = "block_timestamp",
+  order = "desc",
+  contract_id = "meme-burrow.ref-labs.near"
+) => {
+  const defaultResponse = {
+    data: [],
+  };
+  try {
+    const response = await fetch(
+      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&
+      sort=${sort}&order=${order}&contract_id=${contract_id}`
+    );
+    const data = await response.json();
+    return {
+      data: data,
+    };
+  } catch (error) {
+    console.error("Error fetching margin liquidation logs:", error);
+    return defaultResponse;
+  }
+};

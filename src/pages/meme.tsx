@@ -124,8 +124,12 @@ export default function MemePage() {
       </div>
       {activeTab === "normal" && <NormalMemeLiquidationComponent />}
       {activeTab === "margin" && <MarginMemeLiquidationComponent />}
-      {activeTab === "normalHistory" && <NormalMemeHistoryComponent />}
-      {activeTab === "marginHistory" && <MarginMemeHistoryComponent />}
+      {activeTab === "normalHistory" && (
+        <MarginMemeHistoryComponent contractId="contract.main.burrow.near" />
+      )}
+      {activeTab === "marginHistory" && (
+        <MarginMemeHistoryComponent contractId="meme-burrow.ref-labs.near" />
+      )}
     </div>
   );
 }
