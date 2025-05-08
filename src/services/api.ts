@@ -208,8 +208,7 @@ export const getMemeLiquidateRecordPage = async (
   };
   try {
     const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}
-      &page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
+      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
     );
     const data = await response.json();
     return {
@@ -233,8 +232,7 @@ export const getMarginLiquidateLog = async (
   };
   try {
     const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&
-      sort=${sort}&order=${order}&contract_id=${contract_id}`
+      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&contract_id=${contract_id}`
     );
     const data = await response.json();
     return {

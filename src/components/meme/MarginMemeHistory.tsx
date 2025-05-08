@@ -173,7 +173,7 @@ export default function MarginMemeHistory({
           <table className="commonTable">
             <thead>
               <tr>
-                <th>Account ID</th>
+                <th>pos ID</th>
                 <th>Liquidator</th>
                 <th>Debt</th>
                 <th>Collateral</th>
@@ -204,10 +204,10 @@ export default function MarginMemeHistory({
                     <td className="w-[200px] whitespace-nowrap">
                       <div className="flex items-center relative cursor-pointer">
                         <div className="justify-self-start overflow-hidden w-32 whitespace-nowrap text-ellipsis">
-                          <span>{row.account_id}</span>
+                          <span>{row.pos_id}</span>
                         </div>
                         <CopyToClipboard
-                          text={row.account_id}
+                          text={row.pos_id}
                           onCopy={() => handleCopy(`account_${idx}`)}
                         >
                           <CopyIcon />
