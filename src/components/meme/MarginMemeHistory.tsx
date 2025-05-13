@@ -47,6 +47,7 @@ export default function MarginMemeHistory({
         Object.keys(row.liquidator_profit || {}).forEach((id) =>
           tokenIds.add(id)
         );
+        Object.keys(row.position || {}).forEach((id) => tokenIds.add(id));
       });
       const metas = await Promise.all(
         Array.from(tokenIds).map((id) => ftGetTokenMetadata(id))
@@ -175,6 +176,7 @@ export default function MarginMemeHistory({
               <tr>
                 <th>pos ID</th>
                 <th>Liquidator</th>
+                <th>Position</th>
                 <th>Debt</th>
                 <th>Collateral</th>
                 <th>Liquidator Profit</th>
@@ -236,6 +238,20 @@ export default function MarginMemeHistory({
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="w-[240px] whitespace-nowrap">
+                      {row.position && Object.entries(row.position).length > 0 ? (
+                        Object.entries(row.position).map(([token, amount]) =>
+                          formatAsset(
+                            token,
+                            String(amount),
+                            tokenMetas[token] || {},
+                            tokenPrices[token]?.price || 0
+                          )
+                        )
+                      ) : (
+                        <div className="text-gray-400">None</div>
+                      )}
                     </td>
                     <td className="w-[240px] whitespace-nowrap">
                       {row.debt && Object.entries(row.debt).length > 0 ? (
@@ -300,7 +316,7 @@ export default function MarginMemeHistory({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">
+                  <td colSpan={8} className="text-center py-8 text-gray-400">
                     No data available
                   </td>
                 </tr>
