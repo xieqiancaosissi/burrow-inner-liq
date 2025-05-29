@@ -240,7 +240,8 @@ export default function MarginMemeHistory({
                       </div>
                     </td>
                     <td className="w-[240px] whitespace-nowrap">
-                      {row.position && Object.entries(row.position).length > 0 ? (
+                      {row.position &&
+                      Object.entries(row.position).length > 0 ? (
                         Object.entries(row.position).map(([token, amount]) =>
                           formatAsset(
                             token,

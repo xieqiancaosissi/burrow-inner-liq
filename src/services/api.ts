@@ -140,14 +140,15 @@ export async function getHistoryData(
   page_size = 10,
   sort = "timestamp",
   order = "desc",
-  liquidation_type = "all"
+  liquidation_type = "all",
+  days = 7
 ) {
   const defaultResponse = {
     data: [],
   };
   try {
     const liquidationsResponse = await fetch(
-      `${HISTORY_API_URL}/burrow/get_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
+      `${HISTORY_API_URL}/burrow/get_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}&days=${days}`
     );
     const liquidationsData = await liquidationsResponse.json();
     return {
