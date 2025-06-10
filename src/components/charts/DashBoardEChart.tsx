@@ -16,6 +16,9 @@ interface EChartProps {
   timeUnit: TimeUnit;
   title?: string;
   style?: React.CSSProperties;
+  type?: "bar" | "line";
+  stack?: boolean;
+  singleBar?: boolean;
 }
 
 export default function DashBoardEChart({
@@ -24,8 +27,18 @@ export default function DashBoardEChart({
   timeUnit,
   title,
   style,
+  type = "bar",
+  stack = false,
+  singleBar = false,
 }: EChartProps) {
-  const option = getChartOption(xAxisData, seriesData, timeUnit);
+  const option = getChartOption(
+    xAxisData,
+    seriesData,
+    timeUnit,
+    type,
+    stack,
+    singleBar
+  );
   return (
     <div style={style}>
       {title && (

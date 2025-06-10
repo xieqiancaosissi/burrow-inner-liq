@@ -20,7 +20,7 @@ export async function getLiquidations(
       `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}&contract_id=${contract_id}`
     );
     const liquidationsData = await liquidationsResponse.json();
-    if (liquidationsData.code === 0) {
+    if (liquidationsData.code === 0 && liquidationsData.data?.values) {
       const parsedData = JSON.parse(liquidationsData.data.values);
       return {
         timestamp: parsedData.timestamp,
@@ -202,14 +202,15 @@ export const getMemeLiquidateRecordPage = async (
   page_size = 10,
   sort = "timestamp",
   order = "desc",
-  liquidation_type = "all"
+  liquidation_type = "all",
+  days = 7
 ) => {
   const defaultResponse = {
     data: [],
   };
   try {
     const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}`
+      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}&days=${days}`
     );
     const data = await response.json();
     return {
@@ -226,14 +227,15 @@ export const getMarginLiquidateLog = async (
   page_size = 10,
   sort = "block_timestamp",
   order = "desc",
-  contract_id = "meme-burrow.ref-labs.near"
+  contract_id = "meme-burrow.ref-labs.near",
+  days = 7
 ) => {
   const defaultResponse = {
     data: [],
   };
   try {
     const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&contract_id=${contract_id}`
+      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&contract_id=${contract_id}&days=${days}`
     );
     const data = await response.json();
     return {

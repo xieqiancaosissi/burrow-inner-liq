@@ -3,6 +3,7 @@ import {
   getLiquidations,
   getHistoryData,
   getMemeLiquidateRecordPage,
+  getMarginLiquidateLog,
 } from "@/services/api";
 import { BeatLoading } from "@/components/Loading";
 import { format_usd, toReadableDecimalsNumber } from "@/utils/number";
@@ -26,26 +27,6 @@ interface DashboardData {
   meme_margin_tobe_forced_value: number;
 }
 
-interface HistoryData {
-  date: string;
-  total_liquidation_count: number;
-  team_liquidation_count: number;
-  community_liquidation_count: number;
-  total_liquidation_value: number;
-  team_liquidation_value: number;
-  community_liquidation_value: number;
-  total_force_count: number;
-  total_force_value: number;
-  total_liquidator_profit: number;
-  team_liquidator_profit: number;
-  community_liquidator_profit: number;
-  protocol_liquidation_profit: number;
-  team_force_count: number;
-  community_force_count: number;
-  team_force_value: number;
-  community_force_value: number;
-}
-
 interface MarginLiquidationData {
   type: string;
   debt: {
@@ -53,48 +34,52 @@ interface MarginLiquidationData {
   };
 }
 
+const TEAM_ACCOUNTS = [
+  "burrow-liquidation-bot-01.ref-labs.near",
+  "burrow-liquidation-bot-02.ref-labs.near",
+  "burrow-liquidation-bot-03.ref-labs.near",
+  "burrow-liquidation-bot-04.ref-labs.near",
+  "closenook7417.near",
+  "liqbot.near",
+];
+
+function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
+  return arr.reduce((acc: Record<string, T[]>, item: T) => {
+    const key = fn(item);
+    acc[key] = acc[key] || [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
 export default function DashBoard() {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null
   );
-  const [historyData, setHistoryData] = useState<HistoryData[]>([]);
-  const [timeRange, setTimeRange] = useState<"daily" | "weekly">("daily");
-
   const [memeMargin, setMemeMargin] = useState<any[]>([]);
   const [tokenMetas, setTokenMetas] = useState<Record<string, any>>({});
   const [tokenPrices, setTokenPrices] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    async function fetchTokenInfo() {
-      const tokenIds = new Set<string>();
-      getLiquidations(
-        "LiquidatableMarginPositions",
-        "meme-burrow.ref-labs.near"
-      ).then((res) => {
-        setMemeMargin(res.data);
-        res.data.forEach((item: any) => {
-          if (item.debt?.token_id) tokenIds.add(item.debt.token_id);
-        });
-        Promise.all(
-          Array.from(tokenIds).map((id) => ftGetTokenMetadata(id))
-        ).then((metas) => {
-          const metaMap: Record<string, any> = {};
-          Array.from(tokenIds).forEach((id, idx) => (metaMap[id] = metas[idx]));
-          setTokenMetas(metaMap);
-        });
-      });
-      getPerice().then(setTokenPrices);
-    }
-    fetchTokenInfo();
-  }, []);
+  const [historyType, setHistoryType] = useState<"day" | "week">("day");
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyAgg, setHistoryAgg] = useState<any[]>([]);
+  const [mainMarginHistoryAgg, setMainMarginHistoryAgg] = useState<any[]>([]);
+  const [memeRegularHistoryAgg, setMemeRegularHistoryAgg] = useState<any[]>([]);
+  const [memeMarginHistoryAgg, setMemeMarginHistoryAgg] = useState<any[]>([]);
+  const [allTokenMetadatas, setAllTokenMetadatas] = useState<
+    Record<string, any>
+  >({});
+  const [allTokenPrices, setAllTokenPrices] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchDashboardData();
-    fetchHistoryData();
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
-  }, [timeRange]);
+  }, []);
+
+  useEffect(() => {
+    fetchHistoryAgg();
+  }, [historyType]);
 
   const fetchDashboardData = async () => {
     try {
@@ -117,16 +102,30 @@ export default function DashBoard() {
             "meme-burrow.ref-labs.near"
           ),
         ]);
+
+      const tokenIds = new Set<string>();
+      memeMargin.data.forEach((item: any) => {
+        if (item.debt?.token_id) tokenIds.add(item.debt.token_id);
+      });
+      const [metas, prices] = await Promise.all([
+        Promise.all(Array.from(tokenIds).map((id) => ftGetTokenMetadata(id))),
+        getPerice(),
+      ]);
+      const metaMap: Record<string, any> = {};
+      Array.from(tokenIds).forEach((id, idx) => (metaMap[id] = metas[idx]));
+      setMemeMargin(memeMargin.data);
+      setTokenMetas(metaMap);
+      setTokenPrices(prices);
       if (
         memeMargin.data.length &&
-        Object.keys(tokenMetas).length &&
-        Object.keys(tokenPrices).length
+        Object.keys(metaMap).length &&
+        Object.keys(prices).length
       ) {
         const memeMarginValue = memeMargin.data.reduce(
           (sum: number, item: any) => {
             const tokenId = item.debt?.token_id;
-            const meta = tokenMetas[tokenId] || {};
-            const price = tokenPrices[tokenId]?.price || 0;
+            const meta = metaMap[tokenId] || {};
+            const price = prices[tokenId]?.price || 0;
             const decimals = meta.decimals || 24;
             const amount = toReadableDecimalsNumber(
               decimals,
@@ -140,8 +139,8 @@ export default function DashBoard() {
           .filter((item: any) => item.type === "Foreclose")
           .reduce((sum: number, item: any) => {
             const tokenId = item.debt?.token_id;
-            const meta = tokenMetas[tokenId] || {};
-            const price = tokenPrices[tokenId]?.price || 0;
+            const meta = metaMap[tokenId] || {};
+            const price = prices[tokenId]?.price || 0;
             const decimals = meta.decimals || 24;
             const amount = toReadableDecimalsNumber(
               decimals,
@@ -199,183 +198,751 @@ export default function DashBoard() {
     }
   };
 
-  const fetchHistoryData = async () => {
-    try {
-      const days = timeRange === "daily" ? 7 : 49;
-      const [mainRegular, mainMargin, memeRegular, memeMargin] =
-        await Promise.all([
-          getHistoryData(1, 100, "timestamp", "desc", "regular", days),
-          getHistoryData(1, 100, "timestamp", "desc", "margin", days),
-          getMemeLiquidateRecordPage(1, 100, "timestamp", "desc", "regular"),
-          getMemeLiquidateRecordPage(1, 100, "timestamp", "desc", "margin"),
-        ]);
-      const processData = (data: any[]): HistoryData[] => {
-        const groupedData = data.reduce(
-          (acc: Record<string, HistoryData>, item: any) => {
-            const date = new Date(item.timestamp);
-            const key =
-              timeRange === "daily"
-                ? date.toISOString().split("T")[0]
-                : `${date.getFullYear()}-W${Math.ceil(
-                    (date.getDate() + date.getDay()) / 7
-                  )}`;
+  async function fetchHistoryAgg() {
+    setHistoryLoading(true);
+    const days = historyType === "day" ? 7 : 49;
+    const [regularRes, mainMarginRes, memeRegularRes, memeMarginRes] =
+      await Promise.all([
+        getHistoryData(1, 1000, "timestamp", "desc", "all", days),
+        getMarginLiquidateLog(
+          1,
+          1000,
+          "block_timestamp",
+          "desc",
+          "contract.main.burrow.near",
+          days
+        ),
+        getMemeLiquidateRecordPage(1, 1000, "timestamp", "desc", "all", days),
+        getMarginLiquidateLog(
+          1,
+          1000,
+          "block_timestamp",
+          "desc",
+          "meme-burrow.ref-labs.near",
+          days
+        ),
+      ]);
+    const regularRecords: any[] = regularRes?.data?.record_list || [];
+    const mainMarginRecords: any[] = mainMarginRes?.data?.record_list || [];
+    const memeRegularRecords: any[] = memeRegularRes?.data?.record_list || [];
+    const memeMarginRecords: any[] = memeMarginRes?.data?.record_list || [];
+    const tokenIds = new Set<string>();
 
-            if (!acc[key]) {
-              acc[key] = {
-                date: key,
-                total_liquidation_count: 0,
-                team_liquidation_count: 0,
-                community_liquidation_count: 0,
-                total_liquidation_value: 0,
-                team_liquidation_value: 0,
-                community_liquidation_value: 0,
-                total_force_count: 0,
-                total_force_value: 0,
-                total_liquidator_profit: 0,
-                team_liquidator_profit: 0,
-                community_liquidator_profit: 0,
-                protocol_liquidation_profit: 0,
-                team_force_count: 0,
-                community_force_count: 0,
-                team_force_value: 0,
-                community_force_value: 0,
-              };
-            }
+    [
+      ...regularRecords,
+      ...mainMarginRecords,
+      ...memeRegularRecords,
+      ...memeMarginRecords,
+    ].forEach((record) => {
+      (record.LiquidatedAssets || []).forEach((asset: any) => {
+        if (asset && asset.token_id) tokenIds.add(asset.token_id);
+      });
+    });
 
-            const record = acc[key];
-            record.total_liquidation_count++;
-            record.total_liquidation_value += parseFloat(
-              item.liquidation_value || 0
+    const [metas, prices] = await Promise.all([
+      Promise.all(Array.from(tokenIds).map((id) => ftGetTokenMetadata(id))),
+      getPerice(),
+    ]);
+    const metaMap: Record<string, any> = {};
+    Array.from(tokenIds).forEach((id, idx) => (metaMap[id] = metas[idx]));
+    setAllTokenMetadatas(metaMap);
+    setAllTokenPrices(prices);
+
+    // main regular
+    const byDay = groupBy<any>(regularRecords, (r: any) => {
+      const date = new Date(r.createdAt * 1000);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
+
+    // main margin
+    const mainMarginByDay = groupBy<any>(mainMarginRecords, (r: any) => {
+      const date = new Date(r.block_timestamp * 1000);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
+
+    // meme regular
+    const memeRegularByDay = groupBy<any>(memeRegularRecords, (r: any) => {
+      const date = new Date(r.createdAt * 1000);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
+
+    // meme margin
+    const memeMarginByDay = groupBy<any>(memeMarginRecords, (r: any) => {
+      if (!r.block_timestamp) return "-";
+      const milliseconds = Math.floor(Number(r.block_timestamp) / 1_000_000);
+      const date = new Date(milliseconds);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    });
+
+    let dayAgg = Object.entries(byDay).map(([date, items]) => {
+      const itemsArr = items as any[];
+      let total_liquidation_count = itemsArr.length;
+      let team_liquidation_count = itemsArr.filter((i) =>
+        TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+      ).length;
+      let community_liquidation_count =
+        total_liquidation_count - team_liquidation_count;
+      let total_liquidation_value = itemsArr.reduce(
+        (sum, i) =>
+          sum +
+          (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+            const meta = metaMap[a.token_id] || {};
+            const price = prices[a.token_id]?.price || 0;
+            const amount = toReadableDecimalsNumber(
+              meta.decimals || 0,
+              a.amount
             );
-            record.total_force_count += item.type === "force" ? 1 : 0;
-            record.total_force_value +=
-              item.type === "force"
-                ? parseFloat(item.liquidation_value || 0)
-                : 0;
-            record.total_liquidator_profit += parseFloat(
-              item.liquidator_profit || 0
-            );
-            record.protocol_liquidation_profit += parseFloat(
-              item.protocol_profit || 0
-            );
-
-            if (item.liquidator_type === "team") {
-              record.team_liquidation_count++;
-              record.team_liquidation_value += parseFloat(
-                item.liquidation_value || 0
+            return s + parseFloat(amount) * price;
+          }, 0),
+        0
+      );
+      let team_liquidation_value = itemsArr
+        .filter((i) => TEAM_ACCOUNTS.includes(i.liquidation_account_id))
+        .reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
               );
-              record.team_liquidator_profit += parseFloat(
-                item.liquidator_profit || 0
-              );
-              record.team_force_count += item.type === "force" ? 1 : 0;
-              record.team_force_value +=
-                item.type === "force"
-                  ? parseFloat(item.liquidation_value || 0)
-                  : 0;
-            } else {
-              record.community_liquidation_count++;
-              record.community_liquidation_value += parseFloat(
-                item.liquidation_value || 0
-              );
-              record.community_liquidator_profit += parseFloat(
-                item.liquidator_profit || 0
-              );
-              record.community_force_count += item.type === "force" ? 1 : 0;
-              record.community_force_value +=
-                item.type === "force"
-                  ? parseFloat(item.liquidation_value || 0)
-                  : 0;
-            }
-
-            return acc;
-          },
-          {}
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
         );
-
-        return Object.values(groupedData).sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      let community_liquidation_value =
+        total_liquidation_value - team_liquidation_value;
+      let total_force_count = itemsArr.filter(
+        (i) => i.liquidation_type === "force"
+      ).length;
+      let total_force_value = itemsArr
+        .filter((i) => i.liquidation_type === "force")
+        .reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
+              );
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
         );
+      return {
+        date,
+        total_liquidation_count,
+        team_liquidation_count,
+        community_liquidation_count,
+        total_liquidation_value,
+        team_liquidation_value,
+        community_liquidation_value,
+        total_force_count,
+        total_force_value,
       };
-
-      const allHistoryData = [
-        ...processData(mainRegular.data),
-        ...processData(mainMargin.data),
-        ...processData(memeRegular.data),
-        ...processData(memeMargin.data),
-      ];
-
-      const mergedData = allHistoryData.reduce(
-        (acc: Record<string, HistoryData>, item: HistoryData) => {
-          if (!acc[item.date]) {
-            acc[item.date] = { ...item };
-          } else {
-            const existing = acc[item.date];
-            existing.total_liquidation_count += item.total_liquidation_count;
-            existing.team_liquidation_count += item.team_liquidation_count;
-            existing.community_liquidation_count +=
-              item.community_liquidation_count;
-            existing.total_liquidation_value += item.total_liquidation_value;
-            existing.team_liquidation_value += item.team_liquidation_value;
-            existing.community_liquidation_value +=
-              item.community_liquidation_value;
-            existing.total_force_count += item.total_force_count;
-            existing.total_force_value += item.total_force_value;
-            existing.total_liquidator_profit += item.total_liquidator_profit;
-            existing.team_liquidator_profit += item.team_liquidator_profit;
-            existing.community_liquidator_profit +=
-              item.community_liquidator_profit;
-            existing.protocol_liquidation_profit +=
-              item.protocol_liquidation_profit;
-            existing.team_force_count += item.team_force_count;
-            existing.community_force_count += item.community_force_count;
-            existing.team_force_value += item.team_force_value;
-            existing.community_force_value += item.community_force_value;
-          }
-          return acc;
-        },
-        {}
+    });
+    let marginDayAgg = Object.entries(mainMarginByDay).map(([date, items]) => {
+      const itemsArr = items as any[];
+      let total_liquidation_count = itemsArr.length;
+      let team_liquidation_count = itemsArr.filter((i) =>
+        TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+      ).length;
+      let community_liquidation_count =
+        total_liquidation_count - team_liquidation_count;
+      let total_liquidation_value = itemsArr.reduce(
+        (sum, i) =>
+          sum +
+          (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+            const meta = metaMap[a.token_id] || {};
+            const price = prices[a.token_id]?.price || 0;
+            const amount = toReadableDecimalsNumber(
+              meta.decimals || 0,
+              a.amount
+            );
+            return s + parseFloat(amount) * price;
+          }, 0),
+        0
       );
-
-      const finalData = Object.values(mergedData).sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      let team_liquidation_value = itemsArr
+        .filter((i) => TEAM_ACCOUNTS.includes(i.liquidation_account_id))
+        .reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
+              );
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
+        );
+      let community_liquidation_value =
+        total_liquidation_value - team_liquidation_value;
+      let total_liquidator_profit = itemsArr.reduce(
+        (sum, i) => sum + parseFloat(i.liquidator_profit || "0"),
+        0
       );
+      let team_liquidator_profit = itemsArr
+        .filter((i) => TEAM_ACCOUNTS.includes(i.liquidation_account_id))
+        .reduce((sum, i) => sum + parseFloat(i.liquidator_profit || "0"), 0);
+      let community_liquidator_profit =
+        total_liquidator_profit - team_liquidator_profit;
+      let protocol_liquidation_profit = itemsArr.reduce(
+        (sum, i) => sum + parseFloat(i.protocol_profit || "0"),
+        0
+      );
+      let total_force_count = itemsArr.filter(
+        (i) => i.liquidation_type === "force"
+      ).length;
+      let team_force_count = itemsArr.filter(
+        (i) =>
+          i.liquidation_type === "force" &&
+          TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+      ).length;
+      let community_force_count = total_force_count - team_force_count;
+      let total_force_value = itemsArr
+        .filter((i) => i.liquidation_type === "force")
+        .reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
+              );
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
+        );
+      let team_force_value = itemsArr
+        .filter(
+          (i) =>
+            i.liquidation_type === "force" &&
+            TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+        )
+        .reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
+              );
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
+        );
+      let community_force_value = total_force_value - team_force_value;
+      return {
+        date,
+        total_liquidation_count,
+        team_liquidation_count,
+        community_liquidation_count,
+        total_liquidation_value,
+        team_liquidation_value,
+        community_liquidation_value,
+        total_liquidator_profit,
+        team_liquidator_profit,
+        community_liquidator_profit,
+        protocol_liquidation_profit,
+        total_force_count,
+        team_force_count,
+        community_force_count,
+        total_force_value,
+        team_force_value,
+        community_force_value,
+      };
+    });
 
-      setHistoryData(finalData);
-    } catch (error) {
-      console.error("Error fetching history data:", error);
+    // meme regular
+    let memeRegularDayAgg = Object.entries(memeRegularByDay).map(
+      ([date, items]) => {
+        const itemsArr = items as any[];
+        let total_liquidation_count = itemsArr.length;
+        let team_liquidation_count = itemsArr.filter((i) =>
+          TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+        ).length;
+        let community_liquidation_count =
+          total_liquidation_count - team_liquidation_count;
+        let total_liquidation_value = itemsArr.reduce(
+          (sum, i) =>
+            sum +
+            (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+              const meta = metaMap[a.token_id] || {};
+              const price = prices[a.token_id]?.price || 0;
+              const amount = toReadableDecimalsNumber(
+                meta.decimals || 0,
+                a.amount
+              );
+              return s + parseFloat(amount) * price;
+            }, 0),
+          0
+        );
+        let team_liquidation_value = itemsArr
+          .filter((i) => TEAM_ACCOUNTS.includes(i.liquidation_account_id))
+          .reduce(
+            (sum, i) =>
+              sum +
+              (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+                const meta = metaMap[a.token_id] || {};
+                const price = prices[a.token_id]?.price || 0;
+                const amount = toReadableDecimalsNumber(
+                  meta.decimals || 0,
+                  a.amount
+                );
+                return s + parseFloat(amount) * price;
+              }, 0),
+            0
+          );
+        let community_liquidation_value =
+          total_liquidation_value - team_liquidation_value;
+        let total_force_count = itemsArr.filter(
+          (i) => i.liquidation_type === "force"
+        ).length;
+        let total_force_value = itemsArr
+          .filter((i) => i.liquidation_type === "force")
+          .reduce(
+            (sum, i) =>
+              sum +
+              (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
+                const meta = metaMap[a.token_id] || {};
+                const price = prices[a.token_id]?.price || 0;
+                const amount = toReadableDecimalsNumber(
+                  meta.decimals || 0,
+                  a.amount
+                );
+                return s + parseFloat(amount) * price;
+              }, 0),
+            0
+          );
+        return {
+          date,
+          total_liquidation_count,
+          team_liquidation_count,
+          community_liquidation_count,
+          total_liquidation_value,
+          team_liquidation_value,
+          community_liquidation_value,
+          total_force_count,
+          total_force_value,
+        };
+      }
+    );
+
+    // meme margin
+    let memeMarginDayAgg = Object.entries(memeMarginByDay).map(
+      ([date, items]) => {
+        const itemsArr = items as any[];
+        let total_liquidation_count = itemsArr.length;
+        let team_liquidation_count = itemsArr.filter((i) =>
+          TEAM_ACCOUNTS.includes(i.liquidator_id)
+        ).length;
+        let community_liquidation_count =
+          total_liquidation_count - team_liquidation_count;
+
+        let total_liquidation_value = itemsArr.reduce((sum, i) => {
+          if (!i.debt) return sum;
+          return (
+            sum +
+            Object.entries(i.debt).reduce((s, [token, amount]) => {
+              const meta = metaMap[token] || {};
+              const price = prices[token]?.price || 0;
+              const readable = parseFloat(
+                toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+              );
+              return s + readable * price;
+            }, 0)
+          );
+        }, 0);
+
+        let team_liquidation_value = itemsArr
+          .filter((i) => TEAM_ACCOUNTS.includes(i.liquidator_id))
+          .reduce((sum, i) => {
+            if (!i.debt) return sum;
+            return (
+              sum +
+              Object.entries(i.debt).reduce((s, [token, amount]) => {
+                const meta = metaMap[token] || {};
+                const price = prices[token]?.price || 0;
+                const readable = parseFloat(
+                  toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+                );
+                return s + readable * price;
+              }, 0)
+            );
+          }, 0);
+
+        let community_liquidation_value =
+          total_liquidation_value - team_liquidation_value;
+
+        // liquidator profit
+        let total_liquidator_profit = itemsArr.reduce((sum, i) => {
+          if (!i.liquidator_profit) return sum;
+          return (
+            sum +
+            Object.entries(i.liquidator_profit).reduce((s, [token, amount]) => {
+              const meta = metaMap[token] || {};
+              const price = prices[token]?.price || 0;
+              const readable = parseFloat(
+                toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+              );
+              return s + readable * price;
+            }, 0)
+          );
+        }, 0);
+
+        let team_liquidator_profit = itemsArr
+          .filter((i) => TEAM_ACCOUNTS.includes(i.liquidator_id))
+          .reduce((sum, i) => {
+            if (!i.liquidator_profit) return sum;
+            return (
+              sum +
+              Object.entries(i.liquidator_profit).reduce(
+                (s, [token, amount]) => {
+                  const meta = metaMap[token] || {};
+                  const price = prices[token]?.price || 0;
+                  const readable = parseFloat(
+                    toReadableDecimalsNumber(
+                      meta.decimals || 24,
+                      String(amount)
+                    )
+                  );
+                  return s + readable * price;
+                },
+                0
+              )
+            );
+          }, 0);
+
+        let community_liquidator_profit =
+          total_liquidator_profit - team_liquidator_profit;
+
+        // protocol profit
+        let protocol_liquidation_profit = itemsArr.reduce((sum, i) => {
+          if (!i.protocol_profit) return sum;
+          return (
+            sum +
+            Object.entries(i.protocol_profit).reduce((s, [token, amount]) => {
+              const meta = metaMap[token] || {};
+              const price = prices[token]?.price || 0;
+              const readable = parseFloat(
+                toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+              );
+              return s + readable * price;
+            }, 0)
+          );
+        }, 0);
+
+        // Force Close
+        let total_force_count = itemsArr.filter(
+          (i) => i.pos_type === "Foreclose"
+        ).length;
+        let team_force_count = itemsArr.filter(
+          (i) =>
+            i.pos_type === "Foreclose" &&
+            TEAM_ACCOUNTS.includes(i.liquidator_id)
+        ).length;
+        let community_force_count = total_force_count - team_force_count;
+
+        let total_force_value = itemsArr
+          .filter((i) => i.pos_type === "Foreclose")
+          .reduce((sum, i) => {
+            if (!i.debt) return sum;
+            return (
+              sum +
+              Object.entries(i.debt).reduce((s, [token, amount]) => {
+                const meta = metaMap[token] || {};
+                const price = prices[token]?.price || 0;
+                const readable = parseFloat(
+                  toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+                );
+                return s + readable * price;
+              }, 0)
+            );
+          }, 0);
+
+        let team_force_value = itemsArr
+          .filter(
+            (i) =>
+              i.pos_type === "Foreclose" &&
+              TEAM_ACCOUNTS.includes(i.liquidator_id)
+          )
+          .reduce((sum, i) => {
+            if (!i.debt) return sum;
+            return (
+              sum +
+              Object.entries(i.debt).reduce((s, [token, amount]) => {
+                const meta = metaMap[token] || {};
+                const price = prices[token]?.price || 0;
+                const readable = parseFloat(
+                  toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+                );
+                return s + readable * price;
+              }, 0)
+            );
+          }, 0);
+
+        let community_force_value = total_force_value - team_force_value;
+
+        return {
+          date,
+          total_liquidation_count,
+          team_liquidation_count,
+          community_liquidation_count,
+          total_liquidation_value,
+          team_liquidation_value,
+          community_liquidation_value,
+          total_liquidator_profit,
+          team_liquidator_profit,
+          community_liquidator_profit,
+          protocol_liquidation_profit,
+          total_force_count,
+          team_force_count,
+          community_force_count,
+          total_force_value,
+          team_force_value,
+          community_force_value,
+        };
+      }
+    );
+
+    dayAgg = dayAgg.sort((a, b) => a.date.localeCompare(b.date));
+    marginDayAgg = marginDayAgg.sort((a, b) => a.date.localeCompare(b.date));
+    memeRegularDayAgg = memeRegularDayAgg.sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+    memeMarginDayAgg = memeMarginDayAgg.sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+
+    let agg = dayAgg;
+    let marginAgg = marginDayAgg;
+    let memeRegularAgg = memeRegularDayAgg;
+    let memeMarginAgg = memeMarginDayAgg;
+    if (historyType === "week") {
+      agg = [];
+      marginAgg = [];
+      memeRegularAgg = [];
+      memeMarginAgg = [];
+      for (let i = 0; i < dayAgg.length; i += 7) {
+        const week = dayAgg.slice(i, i + 7);
+        agg.push({
+          date: week[0]?.date + " ~ " + week[week.length - 1]?.date,
+          total_liquidation_count: week.reduce(
+            (s, d) => s + d.total_liquidation_count,
+            0
+          ),
+          team_liquidation_count: week.reduce(
+            (s, d) => s + d.team_liquidation_count,
+            0
+          ),
+          community_liquidation_count: week.reduce(
+            (s, d) => s + d.community_liquidation_count,
+            0
+          ),
+          total_liquidation_value: week.reduce(
+            (s, d) => s + d.total_liquidation_value,
+            0
+          ),
+          team_liquidation_value: week.reduce(
+            (s, d) => s + d.team_liquidation_value,
+            0
+          ),
+          community_liquidation_value: week.reduce(
+            (s, d) => s + d.community_liquidation_value,
+            0
+          ),
+          total_force_count: week.reduce((s, d) => s + d.total_force_count, 0),
+          total_force_value: week.reduce((s, d) => s + d.total_force_value, 0),
+        });
+      }
+      for (let i = 0; i < marginDayAgg.length; i += 7) {
+        const week = marginDayAgg.slice(i, i + 7);
+        marginAgg.push({
+          date: week[0]?.date + " ~ " + week[week.length - 1]?.date,
+          total_liquidation_count: week.reduce(
+            (s, d) => s + d.total_liquidation_count,
+            0
+          ),
+          team_liquidation_count: week.reduce(
+            (s, d) => s + d.team_liquidation_count,
+            0
+          ),
+          community_liquidation_count: week.reduce(
+            (s, d) => s + d.community_liquidation_count,
+            0
+          ),
+          total_liquidation_value: week.reduce(
+            (s, d) => s + d.total_liquidation_value,
+            0
+          ),
+          team_liquidation_value: week.reduce(
+            (s, d) => s + d.team_liquidation_value,
+            0
+          ),
+          community_liquidation_value: week.reduce(
+            (s, d) => s + d.community_liquidation_value,
+            0
+          ),
+          total_liquidator_profit: week.reduce(
+            (s, d) => s + d.total_liquidator_profit,
+            0
+          ),
+          team_liquidator_profit: week.reduce(
+            (s, d) => s + d.team_liquidator_profit,
+            0
+          ),
+          community_liquidator_profit: week.reduce(
+            (s, d) => s + d.community_liquidator_profit,
+            0
+          ),
+          protocol_liquidation_profit: week.reduce(
+            (s, d) => s + d.protocol_liquidation_profit,
+            0
+          ),
+          total_force_count: week.reduce((s, d) => s + d.total_force_count, 0),
+          team_force_count: week.reduce((s, d) => s + d.team_force_count, 0),
+          community_force_count: week.reduce(
+            (s, d) => s + d.community_force_count,
+            0
+          ),
+          total_force_value: week.reduce((s, d) => s + d.total_force_value, 0),
+          team_force_value: week.reduce((s, d) => s + d.team_force_value, 0),
+          community_force_value: week.reduce(
+            (s, d) => s + d.community_force_value,
+            0
+          ),
+        });
+      }
+      for (let i = 0; i < memeRegularDayAgg.length; i += 7) {
+        const week = memeRegularDayAgg.slice(i, i + 7);
+        memeRegularAgg.push({
+          date: week[0]?.date + " ~ " + week[week.length - 1]?.date,
+          total_liquidation_count: week.reduce(
+            (s, d) => s + d.total_liquidation_count,
+            0
+          ),
+          team_liquidation_count: week.reduce(
+            (s, d) => s + d.team_liquidation_count,
+            0
+          ),
+          community_liquidation_count: week.reduce(
+            (s, d) => s + d.community_liquidation_count,
+            0
+          ),
+          total_liquidation_value: week.reduce(
+            (s, d) => s + d.total_liquidation_value,
+            0
+          ),
+          team_liquidation_value: week.reduce(
+            (s, d) => s + d.team_liquidation_value,
+            0
+          ),
+          community_liquidation_value: week.reduce(
+            (s, d) => s + d.community_liquidation_value,
+            0
+          ),
+          total_force_count: week.reduce((s, d) => s + d.total_force_count, 0),
+          total_force_value: week.reduce((s, d) => s + d.total_force_value, 0),
+        });
+      }
+      for (let i = 0; i < memeMarginDayAgg.length; i += 7) {
+        const week = memeMarginDayAgg.slice(i, i + 7);
+        memeMarginAgg.push({
+          date: week[0]?.date + " ~ " + week[week.length - 1]?.date,
+          total_liquidation_count: week.reduce(
+            (s, d) => s + d.total_liquidation_count,
+            0
+          ),
+          team_liquidation_count: week.reduce(
+            (s, d) => s + d.team_liquidation_count,
+            0
+          ),
+          community_liquidation_count: week.reduce(
+            (s, d) => s + d.community_liquidation_count,
+            0
+          ),
+          total_liquidation_value: week.reduce(
+            (s, d) => s + d.total_liquidation_value,
+            0
+          ),
+          team_liquidation_value: week.reduce(
+            (s, d) => s + d.team_liquidation_value,
+            0
+          ),
+          community_liquidation_value: week.reduce(
+            (s, d) => s + d.community_liquidation_value,
+            0
+          ),
+          total_liquidator_profit: week.reduce(
+            (s, d) => s + d.total_liquidator_profit,
+            0
+          ),
+          team_liquidator_profit: week.reduce(
+            (s, d) => s + d.team_liquidator_profit,
+            0
+          ),
+          community_liquidator_profit: week.reduce(
+            (s, d) => s + d.community_liquidator_profit,
+            0
+          ),
+          protocol_liquidation_profit: week.reduce(
+            (s, d) => s + d.protocol_liquidation_profit,
+            0
+          ),
+          total_force_count: week.reduce((s, d) => s + d.total_force_count, 0),
+          team_force_count: week.reduce((s, d) => s + d.team_force_count, 0),
+          community_force_count: week.reduce(
+            (s, d) => s + d.community_force_count,
+            0
+          ),
+          total_force_value: week.reduce((s, d) => s + d.total_force_value, 0),
+          team_force_value: week.reduce((s, d) => s + d.team_force_value, 0),
+          community_force_value: week.reduce(
+            (s, d) => s + d.community_force_value,
+            0
+          ),
+        });
+      }
+      agg = agg.slice(-7);
+      marginAgg = marginAgg.slice(-7);
+      memeRegularAgg = memeRegularAgg.slice(-7);
+      memeMarginAgg = memeMarginAgg.slice(-7);
     }
-  };
-
-  function getEChartData(
-    data: HistoryData[],
-    type: string,
-    timeUnit: TimeUnit
-  ) {
-    const xAxisData = data.map((item) => new Date(item.date).getTime() / 1000);
-    const seriesData: SeriesData[] = [
-      {
-        name: "Total",
-        data: data.map(
-          (item) => item[`total_${type}` as keyof HistoryData] as number
-        ),
-        color: "#4fd1c5",
-      },
-      {
-        name: "Team",
-        data: data.map(
-          (item) => item[`team_${type}` as keyof HistoryData] as number
-        ),
-        color: "#4299e1",
-      },
-      {
-        name: "Community",
-        data: data.map(
-          (item) => item[`community_${type}` as keyof HistoryData] as number
-        ),
-        color: "#f56565",
-      },
-    ];
-    return { xAxisData, seriesData };
+    if (historyType === "day") {
+      agg = dayAgg.slice(-7);
+      marginAgg = marginDayAgg.slice(-7);
+      memeRegularAgg = memeRegularDayAgg.slice(-7);
+      memeMarginAgg = memeMarginDayAgg.slice(-7);
+    }
+    setHistoryAgg(agg);
+    setMainMarginHistoryAgg(marginAgg);
+    setMemeRegularHistoryAgg(memeRegularAgg);
+    setMemeMarginHistoryAgg(memeMarginAgg);
+    setHistoryLoading(false);
   }
 
   function formatUsdNoZero(n: string | number) {
@@ -387,15 +954,17 @@ export default function DashBoard() {
     return "$" + number.toFixed(4);
   }
 
-  // if (loading) {
-  //   return <BeatLoading />;
-  // }
+  if (loading) {
+    return <BeatLoading />;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 text-white">
       {/* Real-time Data Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-3">Real-time Data</h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-2xl font-bold">Real-time Data</h2>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-dark-200 bg-opacity-50 px-5 py-0 rounded-xl flex flex-col justify-center min-h-[110px] shadow">
             <h3 className="text-base font-semibold mb-4">
@@ -411,7 +980,7 @@ export default function DashBoard() {
               <span className="text-2xl font-bold">
                 {formatUsdNoZero(
                   dashboardData?.main_regular_tobe_liquidated_value || 0
-                )} {" "}
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -432,7 +1001,7 @@ export default function DashBoard() {
               <span className="text-2xl font-bold">
                 {formatUsdNoZero(
                   dashboardData?.main_margin_tobe_liquidated_value || 0
-                )} {" "}
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -451,7 +1020,9 @@ export default function DashBoard() {
                 </span>
               </span>
               <span className="text-2xl font-bold">
-                {formatUsdNoZero(dashboardData?.main_margin_tobe_forced_value || 0)}{" "}
+                {formatUsdNoZero(
+                  dashboardData?.main_margin_tobe_forced_value || 0
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -472,7 +1043,7 @@ export default function DashBoard() {
               <span className="text-2xl font-bold">
                 {formatUsdNoZero(
                   dashboardData?.meme_regular_tobe_liquidated_value || 0
-                )} {" "}
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -493,7 +1064,7 @@ export default function DashBoard() {
               <span className="text-2xl font-bold">
                 {formatUsdNoZero(
                   dashboardData?.meme_margin_tobe_liquidated_value || 0
-                )} {" "}
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -512,7 +1083,9 @@ export default function DashBoard() {
                 </span>
               </span>
               <span className="text-2xl font-bold">
-                {formatUsdNoZero(dashboardData?.meme_margin_tobe_forced_value || 0)}{" "}
+                {formatUsdNoZero(
+                  dashboardData?.meme_margin_tobe_forced_value || 0
+                )}{" "}
                 <span className="text-base font-normal text-gray-400">
                   value
                 </span>
@@ -521,133 +1094,666 @@ export default function DashBoard() {
           </div>
         </div>
       </div>
-
-      {/* Historical Data Section */}
-      {/* <div>
-        <h2 className="text-3xl font-extrabold text-white mb-6">Historical Data</h2>
-        <div className="space-y-14">
+      {/* Historical Data (Aggregated Chart) Section */}
+      <div className="mb-6 mt-10">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-2xl font-bold">Historical Data</h2>
           <div>
-            <h3 className="text-2xl font-bold text-gray-100 mt-6 mb-2 pb-2 border-b-2 border-[#353657]">Main Regular</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <DashBoardEChart
-                title="Liquidation Count"
-                {...getEChartData(historyData, "liquidation_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidation Value"
-                {...getEChartData(historyData, "liquidation_value", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Count"
-                {...getEChartData(historyData, "force_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Value"
-                {...getEChartData(historyData, "force_value", "day")}
-                timeUnit="day"
-              />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-100 mt-6 mb-2 pb-2 border-b-2 border-[#353657]">Main Margin</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <DashBoardEChart
-                title="Liquidation Count"
-                {...getEChartData(historyData, "liquidation_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidation Value"
-                {...getEChartData(historyData, "liquidation_value", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidator Profit"
-                {...getEChartData(historyData, "liquidator_profit", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Protocol Profit"
-                {...getEChartData(historyData, "protocol_liquidation_profit", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Count"
-                {...getEChartData(historyData, "force_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Value"
-                {...getEChartData(historyData, "force_value", "day")}
-                timeUnit="day"
-              />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-100 mt-6 mb-2 pb-2 border-b-2 border-[#353657]">Meme Regular</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <DashBoardEChart
-                title="Liquidation Count"
-                {...getEChartData(historyData, "liquidation_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidation Value"
-                {...getEChartData(historyData, "liquidation_value", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Count"
-                {...getEChartData(historyData, "force_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Value"
-                {...getEChartData(historyData, "force_value", "day")}
-                timeUnit="day"
-              />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-100 mt-6 mb-2 pb-2 border-b-2 border-[#353657]">Meme Margin</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <DashBoardEChart
-                title="Liquidation Count"
-                {...getEChartData(historyData, "liquidation_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidation Value"
-                {...getEChartData(historyData, "liquidation_value", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Liquidator Profit"
-                {...getEChartData(historyData, "liquidator_profit", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Protocol Profit"
-                {...getEChartData(historyData, "protocol_liquidation_profit", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Count"
-                {...getEChartData(historyData, "force_count", "day")}
-                timeUnit="day"
-              />
-              <DashBoardEChart
-                title="Force Close Value"
-                {...getEChartData(historyData, "force_value", "day")}
-                timeUnit="day"
-              />
-            </div>
+            <button
+              className={`px-4 py-2 rounded-l ${
+                historyType === "day"
+                  ? "bg-yellow-300 text-black"
+                  : "bg-dark-200 text-gray-400 "
+              } font-semibold`}
+              onClick={() => {
+                setHistoryLoading(true);
+                setHistoryType("day");
+              }}
+            >
+              Daily (7 days)
+            </button>
+            <button
+              className={`px-4 py-2 rounded-r ${
+                historyType === "week"
+                  ? "bg-yellow-300 text-black"
+                  : "bg-dark-200 text-gray-400 "
+              } font-semibold`}
+              onClick={() => {
+                setHistoryLoading(true);
+                setHistoryType("week");
+              }}
+            >
+              Weekly (7 weeks)
+            </button>
           </div>
         </div>
-      </div> */}
+        {/* Chart Area */}
+        <div className="grid grid-cols-2 gap-6">
+          {historyLoading ? (
+            <div className="col-span-2 flex items-center justify-center h-[320px] text-gray-400 text-lg">
+              Loading...
+            </div>
+          ) : (
+            <>
+              {/* Main Regular Charts */}
+              <div className="col-span-2">
+                <h3 className="text-xl font-bold mb-4">Main Regular</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={historyAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: historyAgg.map(
+                            (d) => d.total_liquidation_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: historyAgg.map((d) => d.team_liquidation_count),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: historyAgg.map(
+                            (d) => d.community_liquidation_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={historyAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: historyAgg.map(
+                            (d) => d.total_liquidation_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: historyAgg.map((d) => d.team_liquidation_value),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: historyAgg.map(
+                            (d) => d.community_liquidation_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={historyAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Force Close Count",
+                          data: historyAgg.map((d) => d.total_force_count),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Count"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={historyAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Force Close Value",
+                          data: historyAgg.map((d) => d.total_force_value),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Value (USD)"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Margin Charts */}
+              <div className="col-span-2 mt-8">
+                <h3 className="text-xl font-bold mb-4">Main Margin</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.total_liquidation_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.team_liquidation_count
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.community_liquidation_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.total_liquidation_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.team_liquidation_value
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.community_liquidation_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.total_liquidator_profit
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.team_liquidator_profit
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.community_liquidator_profit
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidator Profit (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Protocol Profit",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.protocol_liquidation_profit
+                          ),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Protocol Profit (USD)"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.total_force_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.team_force_count
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.community_force_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={mainMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.total_force_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.team_force_value
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: mainMarginHistoryAgg.map(
+                            (d) => d.community_force_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Meme Regular Charts */}
+              <div className="col-span-2 mt-8">
+                <h3 className="text-xl font-bold mb-4">Meme Regular</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeRegularHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.total_liquidation_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.team_liquidation_count
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.community_liquidation_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeRegularHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.total_liquidation_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.team_liquidation_value
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.community_liquidation_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeRegularHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Force Close Count",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.total_force_count
+                          ),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Count"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeRegularHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Force Close Value",
+                          data: memeRegularHistoryAgg.map(
+                            (d) => d.total_force_value
+                          ),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Value (USD)"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Meme Margin Charts */}
+              <div className="col-span-2 mt-8">
+                <h3 className="text-xl font-bold mb-4">Meme Margin</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.total_liquidation_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.team_liquidation_count
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.community_liquidation_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.total_liquidation_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.team_liquidation_value
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.community_liquidation_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidation Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.total_liquidator_profit
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.team_liquidator_profit
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.community_liquidator_profit
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Liquidator Profit (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Protocol Profit",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.protocol_liquidation_profit
+                          ),
+                          color: "#F6C768",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Protocol Profit (USD)"
+                      type="bar"
+                      singleBar={true}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.total_force_count
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.team_force_count
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.community_force_count
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Count"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+                    <DashBoardEChart
+                      xAxisData={memeMarginHistoryAgg.map(
+                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                      )}
+                      seriesData={[
+                        {
+                          name: "Total",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.total_force_value
+                          ),
+                          color: "#F6C768",
+                        },
+                        {
+                          name: "Team",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.team_force_value
+                          ),
+                          color: "#6D8BFF",
+                        },
+                        {
+                          name: "Community",
+                          data: memeMarginHistoryAgg.map(
+                            (d) => d.community_force_value
+                          ),
+                          color: "#7EE8FA",
+                        },
+                      ]}
+                      timeUnit={historyType === "day" ? "day" : "week"}
+                      title="Force Close Value (USD)"
+                      type="bar"
+                      stack={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,10 @@ import { TimeUnit, SeriesData } from "./DashBoardEChart";
 export function getChartOption(
   xAxisData: number[],
   seriesData: SeriesData[],
-  timeUnit: TimeUnit
+  timeUnit: TimeUnit,
+  type: "bar" | "line" = "bar",
+  stack: boolean = false,
+  singleBar: boolean = false
 ) {
   return {
     title: undefined,
@@ -120,17 +123,26 @@ export function getChartOption(
         show: false,
       },
     },
-    series: seriesData.map((item) => ({
+    series: seriesData.map((item, index) => ({
       name: item.name,
-      type: "bar",
-      barGap: "20%",
-      barCategoryGap: "30%",
-      barWidth: "20%",
+      type: type,
+      stack: stack ? "stack" : undefined,
+      barGap: singleBar ? "0%" : "20%",
+      barCategoryGap: singleBar ? "0%" : "30%",
+      barWidth: singleBar ? "40%" : "20%",
       data: item.data.map((value) => parseFloat(value.toFixed(6))),
       itemStyle: {
         color: item.color,
-        borderRadius: [4, 4, 0, 0],
+        borderRadius: type === "bar" ? [4, 4, 0, 0] : undefined,
       },
+      lineStyle:
+        type === "line"
+          ? {
+              width: 2,
+            }
+          : undefined,
+      symbol: type === "line" ? "circle" : undefined,
+      symbolSize: type === "line" ? 6 : undefined,
     })),
   };
 }
