@@ -135,19 +135,24 @@ export default function DashBoard() {
           },
           0
         );
-        const memeMarginForceValue = memeMargin.data
-          .filter((item: any) => item.type === "Foreclose")
-          .reduce((sum: number, item: any) => {
-            const tokenId = item.debt?.token_id;
-            const meta = metaMap[tokenId] || {};
-            const price = prices[tokenId]?.price || 0;
-            const decimals = meta.decimals || 24;
-            const amount = toReadableDecimalsNumber(
-              decimals,
-              String(item.debt?.amount || "0")
-            );
-            return sum + parseFloat(amount) * price;
-          }, 0);
+        // Meme Margin Force Close
+        const memeMarginForceList = memeMargin.data.filter(
+          (item: any) => item.pos_type === "Foreclose"
+        );
+        const memeMarginForceValue = memeMarginForceList.reduce((sum: number, item: any) => {
+          if (!item.debt) return sum;
+          return (
+            sum +
+            Object.entries(item.debt).reduce((s, [token, amount]) => {
+              const meta = metaMap[token] || {};
+              const price = prices[token]?.price || 0;
+              const readable = parseFloat(
+                toReadableDecimalsNumber(meta.decimals || 24, String(amount))
+              );
+              return s + readable * price;
+            }, 0)
+          );
+        }, 0);
 
         const data: DashboardData = {
           main_regular_tobe_liquidated_count: mainRegular.data.length,
@@ -183,9 +188,7 @@ export default function DashBoard() {
           ),
           meme_margin_tobe_liquidated_count: memeMargin.data.length,
           meme_margin_tobe_liquidated_value: memeMarginValue,
-          meme_margin_tobe_forced_count: memeMargin.data.filter(
-            (item: any) => item.type === "Foreclose"
-          ).length,
+          meme_margin_tobe_forced_count: memeMarginForceList.length,
           meme_margin_tobe_forced_value: memeMarginForceValue,
         };
 
@@ -298,13 +301,13 @@ export default function DashBoard() {
         (sum, i) =>
           sum +
           (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
-            const meta = metaMap[a.token_id] || {};
-            const price = prices[a.token_id]?.price || 0;
+        const meta = metaMap[a.token_id] || {};
+        const price = prices[a.token_id]?.price || 0;
             const amount = toReadableDecimalsNumber(
               meta.decimals || 0,
               a.amount
             );
-            return s + parseFloat(amount) * price;
+        return s + parseFloat(amount) * price;
           }, 0),
         0
       );
@@ -314,13 +317,13 @@ export default function DashBoard() {
           (sum, i) =>
             sum +
             (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
-              const meta = metaMap[a.token_id] || {};
-              const price = prices[a.token_id]?.price || 0;
+        const meta = metaMap[a.token_id] || {};
+        const price = prices[a.token_id]?.price || 0;
               const amount = toReadableDecimalsNumber(
                 meta.decimals || 0,
                 a.amount
               );
-              return s + parseFloat(amount) * price;
+        return s + parseFloat(amount) * price;
             }, 0),
           0
         );
@@ -335,13 +338,13 @@ export default function DashBoard() {
           (sum, i) =>
             sum +
             (i.LiquidatedAssets || []).reduce((s: number, a: any) => {
-              const meta = metaMap[a.token_id] || {};
-              const price = prices[a.token_id]?.price || 0;
+        const meta = metaMap[a.token_id] || {};
+        const price = prices[a.token_id]?.price || 0;
               const amount = toReadableDecimalsNumber(
                 meta.decimals || 0,
                 a.amount
               );
-              return s + parseFloat(amount) * price;
+        return s + parseFloat(amount) * price;
             }, 0),
           0
         );
@@ -1139,12 +1142,12 @@ export default function DashBoard() {
               <div className="col-span-2">
                 <h3 className="text-xl font-bold mb-4">Main Regular</h3>
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
-                    <DashBoardEChart
+          <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+            <DashBoardEChart
                       xAxisData={historyAgg.map(
                         (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
                       )}
-                      seriesData={[
+              seriesData={[
                         {
                           name: "Total",
                           data: historyAgg.map(
@@ -1166,17 +1169,17 @@ export default function DashBoard() {
                         },
                       ]}
                       timeUnit={historyType === "day" ? "day" : "week"}
-                      title="Liquidation Count"
-                      type="bar"
-                      stack={false}
-                    />
-                  </div>
-                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
-                    <DashBoardEChart
+              title="Liquidation Count"
+              type="bar"
+              stack={false}
+            />
+          </div>
+          <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+            <DashBoardEChart
                       xAxisData={historyAgg.map(
                         (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
                       )}
-                      seriesData={[
+              seriesData={[
                         {
                           name: "Total",
                           data: historyAgg.map(
@@ -1198,17 +1201,17 @@ export default function DashBoard() {
                         },
                       ]}
                       timeUnit={historyType === "day" ? "day" : "week"}
-                      title="Liquidation Value (USD)"
-                      type="bar"
-                      stack={false}
-                    />
-                  </div>
-                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
-                    <DashBoardEChart
+              title="Liquidation Value (USD)"
+              type="bar"
+              stack={false}
+            />
+          </div>
+          <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+            <DashBoardEChart
                       xAxisData={historyAgg.map(
                         (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
                       )}
-                      seriesData={[
+              seriesData={[
                         {
                           name: "Force Close Count",
                           data: historyAgg.map((d) => d.total_force_count),
@@ -1216,17 +1219,17 @@ export default function DashBoard() {
                         },
                       ]}
                       timeUnit={historyType === "day" ? "day" : "week"}
-                      title="Force Close Count"
-                      type="bar"
-                      singleBar={true}
-                    />
-                  </div>
-                  <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
-                    <DashBoardEChart
+              title="Force Close Count"
+              type="bar"
+              singleBar={true}
+            />
+          </div>
+          <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
+            <DashBoardEChart
                       xAxisData={historyAgg.map(
                         (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
                       )}
-                      seriesData={[
+              seriesData={[
                         {
                           name: "Force Close Value",
                           data: historyAgg.map((d) => d.total_force_value),
@@ -1234,11 +1237,11 @@ export default function DashBoard() {
                         },
                       ]}
                       timeUnit={historyType === "day" ? "day" : "week"}
-                      title="Force Close Value (USD)"
-                      type="bar"
-                      singleBar={true}
-                    />
-                  </div>
+              title="Force Close Value (USD)"
+              type="bar"
+              singleBar={true}
+            />
+          </div>
                 </div>
               </div>
 
