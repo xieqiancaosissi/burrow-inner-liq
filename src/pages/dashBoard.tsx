@@ -41,6 +41,7 @@ const TEAM_ACCOUNTS = [
   "burrow-liquidation-bot-04.ref-labs.near",
   "closenook7417.near",
   "liqbot.near",
+  "meme-lqdb.ref-labs.near"
 ];
 
 function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
