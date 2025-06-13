@@ -294,7 +294,7 @@ export default function DashBoard() {
       const itemsArr = items as any[];
       let total_liquidation_count = itemsArr.length;
       let team_liquidation_count = itemsArr.filter((i) =>
-        TEAM_ACCOUNTS.includes(i.liquidation_account_id)
+        TEAM_ACCOUNTS.includes(i.account_id)
       ).length;
       let community_liquidation_count =
         total_liquidation_count - team_liquidation_count;
@@ -313,7 +313,7 @@ export default function DashBoard() {
         0
       );
       let team_liquidation_value = itemsArr
-        .filter((i) => TEAM_ACCOUNTS.includes(i.liquidation_account_id))
+        .filter((i) => TEAM_ACCOUNTS.includes(i.account_id))
         .reduce(
           (sum, i) =>
             sum +
