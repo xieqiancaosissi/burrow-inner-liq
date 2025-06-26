@@ -46,7 +46,7 @@ export function getChartOption(
           params
             .map(
               (item: any) =>
-                `<br/>${item.seriesName}: ${parseFloat(item.value.toFixed(6))}`
+                `<br/>${item.seriesName}: ${parseFloat(item.value.toFixed(2))}`
             )
             .join("")
         );
@@ -130,7 +130,7 @@ export function getChartOption(
       barGap: singleBar ? "0%" : "20%",
       barCategoryGap: singleBar ? "0%" : "30%",
       barWidth: singleBar ? "40%" : "20%",
-      data: item.data.map((value) => parseFloat(value.toFixed(6))),
+      data: item.data.map((value) => parseFloat(value.toFixed(2))),
       itemStyle: {
         color: item.color,
         borderRadius: type === "bar" ? [4, 4, 0, 0] : undefined,
