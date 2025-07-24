@@ -37,7 +37,7 @@ export default function getConfig(
         helperUrl: "https://testnet-api.kitwallet.app",
         explorerUrl: "https://testnet.nearblocks.io",
         REF_FI_CONTRACT_ID: "v2.ref-finance.near",
-        HISTORY_API_URL: "https://api.data-service.ref.finance",
+        HISTORY_API_URL: "https://api.data-service.burrow.finance",
         LIQUIDATION_RESULT_API_URL: "https://api.ref.finance",
         DASH_BOARD_API_URL: "https://api.flipn.fun",
       };
