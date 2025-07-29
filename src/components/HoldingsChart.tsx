@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import {
+  RankingDataPoint,
   TimeDimension,
   TokenType,
   TopCount,
-  RankingDataPoint,
 } from "../interface/types";
 
-interface RankingChartProps {
+interface HoldingsChartProps {
   data: RankingDataPoint[];
   dimension: TimeDimension;
   tokenType: TokenType;
@@ -16,7 +16,7 @@ interface RankingChartProps {
   onTopCountChange: (topCount: TopCount) => void;
 }
 
-const RankingChart: React.FC<RankingChartProps> = ({
+const HoldingsChart: React.FC<HoldingsChartProps> = ({
   data,
   dimension,
   tokenType,
@@ -72,23 +72,19 @@ const RankingChart: React.FC<RankingChartProps> = ({
         },
       };
     }
-
     const timePoints = data.map((item) => item.time);
-    const userLines: any[] = [];
     const allUsers = new Set<string>();
     data.forEach((point) => {
       point.userRankings.forEach((user) => {
         allUsers.add(user.account_id);
       });
     });
+    const userLines: any[] = [];
     Array.from(allUsers).forEach((userId, index) => {
       const userData = data.map((point) => {
-        const userRanking = point.userRankings.find(
-          (u) => u.account_id === userId
-        );
-        return userRanking ? userRanking.rank : null;
+        const user = point.userRankings.find((u) => u.account_id === userId);
+        return user ? user.balance : null;
       });
-
       userLines.push({
         name: `${userId.slice(0, 8)}...${userId.slice(-6)}`,
         type: chartType,
@@ -104,13 +100,12 @@ const RankingChart: React.FC<RankingChartProps> = ({
         },
       });
     });
-
     return {
       backgroundColor: "transparent",
       title: {
         text: `${getTokenLabel(
           tokenType
-        )} Top${topCount} Ranking Changes (${getDimensionLabel(dimension)})`,
+        )} Top${topCount} Holdings (${getDimensionLabel(dimension)})`,
         left: "center",
         top: 10,
         textStyle: {
@@ -137,10 +132,11 @@ const RankingChart: React.FC<RankingChartProps> = ({
           let result = `<div style="font-weight: bold; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((param: any) => {
             if (param.value !== null) {
+              const value = formatNumber(param.value);
               result += `<div style="margin: 4px 0;">
                 <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
                 <span style="font-weight: 500;">${param.seriesName}:</span> 
-                <span style="float: right; font-weight: bold;">Rank #${param.value}</span>
+                <span style="float: right; font-weight: bold;">${value}</span>
               </div>`;
             }
           });
@@ -192,12 +188,12 @@ const RankingChart: React.FC<RankingChartProps> = ({
       },
       yAxis: {
         type: "value",
-        inverse: chartType === "line",
-        min: 1,
-        max: topCount,
         axisLabel: {
           fontSize: isFullscreenMode ? 14 : 12,
           color: "#A0A0A0",
+          formatter: function (value: number) {
+            return formatNumber(value);
+          },
         },
         axisLine: {
           lineStyle: {
@@ -213,6 +209,17 @@ const RankingChart: React.FC<RankingChartProps> = ({
       },
       series: userLines,
     };
+  };
+
+  const formatNumber = (value: number) => {
+    if (value >= 1e9) {
+      return (value / 1e9).toFixed(2) + "B";
+    } else if (value >= 1e6) {
+      return (value / 1e6).toFixed(2) + "M";
+    } else if (value >= 1e3) {
+      return (value / 1e3).toFixed(2) + "K";
+    }
+    return value?.toFixed(2) ?? "0";
   };
 
   const getRandomColor = (index: number) => {
@@ -257,46 +264,43 @@ const RankingChart: React.FC<RankingChartProps> = ({
       };
 
   return (
-    <div className="w-full">
-      {/* Control buttons */}
-      <div className="flex flex-wrap items-center justify-between mb-6">
-        <div className="flex flex-wrap gap-4">
-          {/* Chart Type Selector */}
-          <select
-            value={chartType}
-            onChange={(e) => setChartType(e.target.value as "line" | "bar")}
-            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-          >
-            <option value="line">Line</option>
-            <option value="bar">Bar</option>
-          </select>
-          {/* Token Type Selector */}
-          <select
-            value={tokenType}
-            onChange={(e) => onTokenTypeChange(e.target.value as TokenType)}
-            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-          >
-            <option value="ref">Ref</option>
-            <option value="brrr">Brrr</option>
-            <option value="rhea">Rhea</option>
-            <option value="xref">xRef</option>
-            <option value="xrhea">xRhea</option>
-          </select>
-          {/* Top Count Selector */}
-          <select
-            value={topCount}
-            onChange={(e) =>
-              onTopCountChange(parseInt(e.target.value) as TopCount)
-            }
-            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-          >
-            <option value={10}>Top 10</option>
-            <option value={20}>Top 20</option>
-            <option value={50}>Top 50</option>
-            <option value={100}>Top 100</option>
-          </select>
-        </div>
-        {/* Fullscreen Button */}
+    <div className="w-full flex flex-col h-full">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        {/* Chart Type Selector */}
+        <select
+          value={chartType}
+          onChange={(e) => setChartType(e.target.value as "line" | "bar")}
+          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+        >
+          <option value="line">Line</option>
+          <option value="bar">Bar</option>
+        </select>
+        {/* Token Type Selector */}
+        <select
+          value={tokenType}
+          onChange={(e) => onTokenTypeChange(e.target.value as TokenType)}
+          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+        >
+          <option value="ref">Ref</option>
+          <option value="brrr">Brrr</option>
+          <option value="rhea">Rhea</option>
+          <option value="xref">xRef</option>
+          <option value="xrhea">xRhea</option>
+        </select>
+        {/* Top Count Selector */}
+        <select
+          value={topCount}
+          onChange={(e) =>
+            onTopCountChange(parseInt(e.target.value) as TopCount)
+          }
+          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+        >
+          <option value={10}>Top 10</option>
+          <option value={20}>Top 20</option>
+          <option value={50}>Top 50</option>
+          <option value={100}>Top 100</option>
+        </select>
+        <div className="flex-1" />
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
           className="px-4 py-2 bg-accent-green text-dark-bg rounded-lg hover:bg-green-400 transition-all duration-200 font-medium shadow-md flex items-center gap-2"
@@ -311,16 +315,12 @@ const RankingChart: React.FC<RankingChartProps> = ({
           {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
         </button>
       </div>
-
-      {/* Chart container */}
-      <div style={chartStyle}>
+      <div className="flex-1 min-h-0">
         <ReactECharts
           option={getChartOption(isFullscreen)}
-          style={{ height: "100%", width: "100%" }}
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
-
-      {/* Close button in fullscreen mode */}
       {isFullscreen && (
         <button
           onClick={() => setIsFullscreen(false)}
@@ -340,4 +340,4 @@ const RankingChart: React.FC<RankingChartProps> = ({
   );
 };
 
-export default RankingChart;
+export default HoldingsChart;

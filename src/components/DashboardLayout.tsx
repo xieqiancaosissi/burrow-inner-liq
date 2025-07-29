@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface ChartConfig {
   id: string;
@@ -9,16 +9,23 @@ interface ChartConfig {
 
 interface DashboardLayoutProps {
   charts: ChartConfig[];
+  children?: React.ReactNode;
 }
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
-  const [layout, setLayout] = useState<'grid' | 'list' | 'tabs'>('grid');
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  charts,
+  children,
+}) => {
+  const [layout, setLayout] = useState<"grid" | "list" | "tabs">("grid");
   const [activeTab, setActiveTab] = useState(0);
 
   const renderGridLayout = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {charts.map((chart, index) => (
-        <div key={chart.id} className="bg-dark-card rounded-xl shadow-lg p-6 border border-gray-800">
+        <div
+          key={chart.id}
+          className="bg-dark-card rounded-xl shadow-lg p-6 border border-gray-800"
+        >
           {chart.component}
         </div>
       ))}
@@ -28,7 +35,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
   const renderListLayout = () => (
     <div className="space-y-6">
       {charts.map((chart, index) => (
-        <div key={chart.id} className="bg-dark-card rounded-xl shadow-lg p-6 border border-gray-800">
+        <div
+          key={chart.id}
+          className="bg-dark-card rounded-xl shadow-lg p-6 border border-gray-800"
+        >
           {chart.component}
         </div>
       ))}
@@ -46,20 +56,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
               onClick={() => setActiveTab(index)}
               className={`py-4 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 whitespace-nowrap ${
                 activeTab === index
-                  ? 'border-accent-green text-accent-green'
-                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                  ? "border-accent-green text-accent-green"
+                  : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600"
               }`}
             >
-              {chart.title.length > 20 ? chart.title.substring(0, 20) + '...' : chart.title}
+              {chart.title.length > 20
+                ? chart.title.substring(0, 20) + "..."
+                : chart.title}
             </button>
           ))}
         </nav>
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
-        {charts[activeTab].component}
-      </div>
+      <div className="p-6">{charts[activeTab].component}</div>
     </div>
   );
 
@@ -69,11 +79,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setLayout('grid')}
+            onClick={() => setLayout("grid")}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-              layout === 'grid'
-                ? 'bg-accent-green text-dark-bg shadow-lg'
-                : 'bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700'
+              layout === "grid"
+                ? "bg-accent-green text-dark-bg shadow-lg"
+                : "bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700"
             }`}
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -82,24 +92,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
             Grid View
           </button>
           <button
-            onClick={() => setLayout('list')}
+            onClick={() => setLayout("list")}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-              layout === 'list'
-                ? 'bg-accent-green text-dark-bg shadow-lg'
-                : 'bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700'
+              layout === "list"
+                ? "bg-accent-green text-dark-bg shadow-lg"
+                : "bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700"
             }`}
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                clipRule="evenodd"
+              />
             </svg>
             List View
           </button>
           <button
-            onClick={() => setLayout('tabs')}
+            onClick={() => setLayout("tabs")}
             className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-              layout === 'tabs'
-                ? 'bg-accent-green text-dark-bg shadow-lg'
-                : 'bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700'
+              layout === "tabs"
+                ? "bg-accent-green text-dark-bg shadow-lg"
+                : "bg-dark-card text-gray-300 hover:bg-gray-800 border border-gray-700"
             }`}
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -108,21 +122,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ charts }) => {
             Tab View
           </button>
         </div>
-        
-        <div className="text-sm text-gray-500 flex items-center gap-2">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10.414 13H12a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          {charts.length} charts available
-        </div>
+        {/* Global Time Selector */}
+        <div>{children}</div>
       </div>
-
       {/* Chart Layout */}
-      {layout === 'grid' && renderGridLayout()}
-      {layout === 'list' && renderListLayout()}
-      {layout === 'tabs' && renderTabsLayout()}
+      {layout === "grid" && renderGridLayout()}
+      {layout === "list" && renderListLayout()}
+      {layout === "tabs" && renderTabsLayout()}
     </div>
   );
 };
 
-export default DashboardLayout; 
+export default DashboardLayout;

@@ -19,23 +19,23 @@ export interface TokenHoldersResponse {
 export interface AllPagesDataResponse {
   record_list: TokenHolder[];
   total_size: number;
-  dimension: 'd' | 'w' | 'm';
+  dimension: "d" | "w" | "m";
 }
 
 export interface AllTokenHoldersResponse {
   record_list: TokenHolder[];
   total_size: number;
-  dimension: 'd' | 'w' | 'm';
+  dimension: "d" | "w" | "m";
 }
 
 export interface MultiDayTokenHoldersResponse {
   record_list: TokenHolder[];
   total_size: number;
-  dimension: 'd' | 'w' | 'm';
+  dimension: "d" | "w" | "m";
   days: number;
 }
 
-export type TimeDimension = 'd' | 'w' | 'm';
+export type TimeDimension = "d" | "w" | "m";
 
 export interface ChartDataPoint {
   time: string;
@@ -46,8 +46,8 @@ export interface ChartDataPoint {
   xrhea: number;
 }
 
-// 新增排名变化相关接口
-export type TokenType = 'ref' | 'brrr' | 'rhea' | 'xref' | 'xrhea';
+// New: ranking change related interfaces
+export type TokenType = "ref" | "brrr" | "rhea" | "xref" | "xrhea";
 
 export type TopCount = 10 | 20 | 50 | 100;
 
@@ -64,4 +64,4 @@ export interface UserRanking {
 
 export interface RankingChartData {
   [tokenType: string]: RankingDataPoint[];
-} 
+}

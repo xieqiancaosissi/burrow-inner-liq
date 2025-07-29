@@ -1,15 +1,23 @@
-import { TokenHolder, AllPagesDataResponse, ChartDataPoint, TokenType, TopCount, RankingDataPoint, UserRanking } from '../interface/types';
-import { ftGetTokenMetadata } from '../services/near';
-import { toReadableNumber } from './number';
-import Big from 'big.js';
+import {
+  TokenHolder,
+  AllPagesDataResponse,
+  ChartDataPoint,
+  TokenType,
+  TopCount,
+  RankingDataPoint,
+  UserRanking,
+} from "../interface/types";
+import { ftGetTokenMetadata } from "../services/near";
+import { toReadableNumber } from "./number";
+import Big from "big.js";
 
 // Token ID mapping based on actual API response
 const TOKEN_IDS = {
-  REF: 'token.v2.ref-finance.near',
-  BRRR: 'token.burrow.near', 
-  RHEA: 'token.rhealab.near',
-  xREF: 'xtoken.ref-finance.near',
-  xRHEA: 'xtoken.rhealab.near',
+  REF: "token.v2.ref-finance.near",
+  BRRR: "token.burrow.near",
+  RHEA: "token.rhealab.near",
+  xREF: "xtoken.ref-finance.near",
+  xRHEA: "xtoken.rhealab.near",
 };
 
 // Token type to ID mapping
@@ -22,14 +30,17 @@ const TOKEN_TYPE_TO_ID: Record<TokenType, string> = {
 };
 
 // Cache for token metadata
-const tokenMetadataCache = new Map<string, { decimals: number; symbol: string }>();
+const tokenMetadataCache = new Map<
+  string,
+  { decimals: number; symbol: string }
+>();
 
 // Get token metadata with caching
 const getTokenMetadata = async (tokenId: string) => {
   if (tokenMetadataCache.has(tokenId)) {
     return tokenMetadataCache.get(tokenId)!;
   }
-  
+
   try {
     const metadata = await ftGetTokenMetadata(tokenId);
     const result = { decimals: metadata.decimals, symbol: metadata.symbol };
@@ -38,12 +49,15 @@ const getTokenMetadata = async (tokenId: string) => {
   } catch (error) {
     console.error(`Failed to get metadata for ${tokenId}:`, error);
     // Fallback to default decimals
-    return { decimals: 24, symbol: 'UNKNOWN' };
+    return { decimals: 24, symbol: "UNKNOWN" };
   }
 };
 
 // Parse balance with proper decimals
-const parseBalance = async (balance: string, tokenId: string): Promise<number> => {
+const parseBalance = async (
+  balance: string,
+  tokenId: string
+): Promise<number> => {
   try {
     const metadata = await getTokenMetadata(tokenId);
     const readableBalance = toReadableNumber(metadata.decimals, balance);
@@ -55,10 +69,13 @@ const parseBalance = async (balance: string, tokenId: string): Promise<number> =
 };
 
 // Calculate total balance of Top100 for specific token
-const getTop100TotalBalance = async (holders: TokenHolder[], tokenId: string): Promise<number> => {
+const getTop100TotalBalance = async (
+  holders: TokenHolder[],
+  tokenId: string
+): Promise<number> => {
   const filteredHolders = holders
-    .filter(holder => holder.token_id === tokenId)
-    .filter(holder => holder.rank <= 100)
+    .filter((holder) => holder.token_id === tokenId)
+    .filter((holder) => holder.rank <= 100)
     .sort((a, b) => a.rank - b.rank);
 
   console.log(`Found ${filteredHolders.length} holders for ${tokenId}`);
@@ -68,17 +85,17 @@ const getTop100TotalBalance = async (holders: TokenHolder[], tokenId: string): P
     const balance = await parseBalance(holder.balance, tokenId);
     total += balance;
   }
-  
+
   return total;
 };
 
 // Format timestamp
 const formatTimestamp = (timestamp: number): string => {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 
@@ -87,14 +104,16 @@ export const processTokenHoldersData = async (
   data: AllPagesDataResponse
 ): Promise<ChartDataPoint[]> => {
   const { record_list } = data;
-  
+
   // Debug: Check actual token_ids returned
-  const tokenIds = [...new Set(record_list.map(record => record.token_id))];
-  console.log('Available token IDs in data:', tokenIds);
-  
+  const tokenIds = [...new Set(record_list.map((record) => record.token_id))];
+  console.log("Available token IDs in data:", tokenIds);
+
   // Check record count for each token
-  tokenIds.forEach(tokenId => {
-    const count = record_list.filter(record => record.token_id === tokenId).length;
+  tokenIds.forEach((tokenId) => {
+    const count = record_list.filter(
+      (record) => record.token_id === tokenId
+    ).length;
     console.log(`Token ${tokenId}: ${count} records`);
   });
 
@@ -105,25 +124,27 @@ export const processTokenHoldersData = async (
   const xrefTotal = await getTop100TotalBalance(record_list, TOKEN_IDS.xREF);
   const xrheaTotal = await getTop100TotalBalance(record_list, TOKEN_IDS.xRHEA);
 
-  console.log('Calculated totals:', {
+  console.log("Calculated totals:", {
     ref: refTotal,
     brrr: brrrTotal,
     rhea: rheaTotal,
     xref: xrefTotal,
-    xrhea: xrheaTotal
+    xrhea: xrheaTotal,
   });
 
   // Get timestamp
   const timestamp = record_list[0]?.timestamp || Date.now() / 1000;
 
-  return [{
-    time: formatTimestamp(timestamp),
-    ref: refTotal,
-    brrr: brrrTotal,
-    rhea: rheaTotal,
-    xref: xrefTotal,
-    xrhea: xrheaTotal
-  }];
+  return [
+    {
+      time: formatTimestamp(timestamp),
+      ref: refTotal,
+      brrr: brrrTotal,
+      rhea: rheaTotal,
+      xref: xrefTotal,
+      xrhea: xrheaTotal,
+    },
+  ];
 };
 
 // 新增：处理排名变化数据（根据实际数据天数）
@@ -134,10 +155,12 @@ export const processRankingData = async (
 ): Promise<RankingDataPoint[]> => {
   const { record_list } = data;
   const tokenId = TOKEN_TYPE_TO_ID[tokenType];
-  
+
   // 检查是否有day字段（多天数据）
-  const hasMultiDayData = record_list.some(record => record.day !== undefined);
-  
+  const hasMultiDayData = record_list.some(
+    (record) => record.day !== undefined
+  );
+
   if (hasMultiDayData) {
     // 处理多天数据
     return processMultiDayRankingData(data, tokenType, topCount);
@@ -155,14 +178,14 @@ export const processMultiDayRankingData = async (
 ): Promise<RankingDataPoint[]> => {
   const { record_list } = data;
   const tokenId = TOKEN_TYPE_TO_ID[tokenType];
-  
+
   // 按天分组数据
   const dailyData = new Map<number, TokenHolder[]>();
-  
+
   record_list
-    .filter(holder => holder.token_id === tokenId)
-    .filter(holder => holder.rank <= topCount)
-    .forEach(holder => {
+    .filter((holder) => holder.token_id === tokenId)
+    .filter((holder) => holder.rank <= topCount)
+    .forEach((holder) => {
       const day = holder.day || 0;
       if (!dailyData.has(day)) {
         dailyData.set(day, []);
@@ -170,31 +193,33 @@ export const processMultiDayRankingData = async (
       dailyData.get(day)!.push(holder);
     });
 
-  console.log(`Processing multi-day ranking data for ${tokenType}: ${dailyData.size} days`);
+  console.log(
+    `Processing multi-day ranking data for ${tokenType}: ${dailyData.size} days`
+  );
 
   const rankingDataPoints: RankingDataPoint[] = [];
-  
+
   // 按天处理数据
   for (const [day, holders] of dailyData) {
     const sortedHolders = holders.sort((a, b) => a.rank - b.rank);
     const userRankings: UserRanking[] = [];
-    
+
     for (const holder of sortedHolders) {
       const balance = await parseBalance(holder.balance, tokenId);
       userRankings.push({
         account_id: holder.account_id,
         rank: holder.rank,
-        balance: balance
+        balance: balance,
       });
     }
 
     // 计算时间戳（假设每天间隔24小时）
     const baseTimestamp = record_list[0]?.timestamp || Date.now() / 1000;
-    const dayTimestamp = baseTimestamp - (day * 24 * 60 * 60);
+    const dayTimestamp = baseTimestamp - day * 24 * 60 * 60;
 
     rankingDataPoints.push({
       time: formatTimestamp(dayTimestamp),
-      userRankings: userRankings
+      userRankings: userRankings,
     });
   }
 
@@ -214,32 +239,84 @@ export const processSingleDayRankingData = async (
 ): Promise<RankingDataPoint[]> => {
   const { record_list } = data;
   const tokenId = TOKEN_TYPE_TO_ID[tokenType];
-  
+
   // 过滤指定token的数据并按排名排序
   const tokenHolders = record_list
-    .filter(holder => holder.token_id === tokenId)
-    .filter(holder => holder.rank <= topCount)
+    .filter((holder) => holder.token_id === tokenId)
+    .filter((holder) => holder.rank <= topCount)
     .sort((a, b) => a.rank - b.rank);
 
-  console.log(`Processing single-day ranking data for ${tokenType}: ${tokenHolders.length} holders`);
+  console.log(
+    `Processing single-day ranking data for ${tokenType}: ${tokenHolders.length} holders`
+  );
 
   // 获取时间戳
   const timestamp = record_list[0]?.timestamp || Date.now() / 1000;
-  
+
   // 处理用户排名数据
   const userRankings: UserRanking[] = [];
-  
+
   for (const holder of tokenHolders) {
     const balance = await parseBalance(holder.balance, tokenId);
     userRankings.push({
       account_id: holder.account_id,
       rank: holder.rank,
-      balance: balance
+      balance: balance,
     });
   }
 
-  return [{
-    time: formatTimestamp(timestamp),
-    userRankings: userRankings
-  }];
-}; 
+  return [
+    {
+      time: formatTimestamp(timestamp),
+      userRankings: userRankings,
+    },
+  ];
+};
+
+// 新增：处理多天持仓数据（每个用户每一天的balance）
+export const processMultiDayHoldingsData = async (
+  data: AllPagesDataResponse,
+  tokenType: TokenType,
+  topCount: TopCount
+): Promise<RankingDataPoint[]> => {
+  const { record_list } = data;
+  const tokenId = TOKEN_TYPE_TO_ID[tokenType];
+
+  // 按天分组数据
+  const dailyData = new Map<number, TokenHolder[]>();
+  record_list
+    .filter((holder) => holder.token_id === tokenId)
+    .filter((holder) => holder.rank <= topCount)
+    .forEach((holder) => {
+      const day = holder.day || 0;
+      if (!dailyData.has(day)) {
+        dailyData.set(day, []);
+      }
+      dailyData.get(day)!.push(holder);
+    });
+
+  const holdingsDataPoints: RankingDataPoint[] = [];
+  for (const [day, holders] of dailyData) {
+    const sortedHolders = holders.sort((a, b) => a.rank - b.rank);
+    const userRankings: UserRanking[] = [];
+    for (const holder of sortedHolders) {
+      const balance = await parseBalance(holder.balance, tokenId);
+      userRankings.push({
+        account_id: holder.account_id,
+        rank: holder.rank,
+        balance: balance,
+      });
+    }
+    const baseTimestamp = record_list[0]?.timestamp || Date.now() / 1000;
+    const dayTimestamp = baseTimestamp - day * 24 * 60 * 60;
+    holdingsDataPoints.push({
+      time: formatTimestamp(dayTimestamp),
+      userRankings: userRankings,
+    });
+  }
+  return holdingsDataPoints.sort((a, b) => {
+    const dateA = new Date(a.time);
+    const dateB = new Date(b.time);
+    return dateA.getTime() - dateB.getTime();
+  });
+};
