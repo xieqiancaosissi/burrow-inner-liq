@@ -265,57 +265,62 @@ const HoldingsChart: React.FC<HoldingsChartProps> = ({
 
   return (
     <div className="w-full flex flex-col h-full">
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        {/* Chart Type Selector */}
-        <select
-          value={chartType}
-          onChange={(e) => setChartType(e.target.value as "line" | "bar")}
-          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-        >
-          <option value="line">Line</option>
-          <option value="bar">Bar</option>
-        </select>
-        {/* Token Type Selector */}
-        <select
-          value={tokenType}
-          onChange={(e) => onTokenTypeChange(e.target.value as TokenType)}
-          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-        >
-          <option value="ref">Ref</option>
-          <option value="brrr">Brrr</option>
-          <option value="rhea">Rhea</option>
-          <option value="xref">xRef</option>
-          <option value="xrhea">xRhea</option>
-        </select>
-        {/* Top Count Selector */}
-        <select
-          value={topCount}
-          onChange={(e) =>
-            onTopCountChange(parseInt(e.target.value) as TopCount)
-          }
-          className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
-        >
-          <option value={10}>Top 10</option>
-          <option value={20}>Top 20</option>
-          <option value={50}>Top 50</option>
-          <option value={100}>Top 100</option>
-        </select>
-        <div className="flex-1" />
-        <button
-          onClick={() => setIsFullscreen(!isFullscreen)}
-          className="px-4 py-2 bg-accent-green text-dark-bg rounded-lg hover:bg-green-400 transition-all duration-200 font-medium shadow-md flex items-center gap-2"
-        >
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-        </button>
-      </div>
-      <div className="flex-1 min-h-0">
+      {!isFullscreen && (
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          {/* Chart Type Selector */}
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value as "line" | "bar")}
+            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+          >
+            <option value="line">Line</option>
+            <option value="bar">Bar</option>
+          </select>
+          {/* Token Type Selector */}
+          <select
+            value={tokenType}
+            onChange={(e) => onTokenTypeChange(e.target.value as TokenType)}
+            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+          >
+            <option value="ref">Ref</option>
+            <option value="brrr">Brrr</option>
+            <option value="rhea">Rhea</option>
+            <option value="xref">xRef</option>
+            <option value="xrhea">xRhea</option>
+          </select>
+          {/* Top Count Selector */}
+          <select
+            value={topCount}
+            onChange={(e) =>
+              onTopCountChange(parseInt(e.target.value) as TopCount)
+            }
+            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+          >
+            <option value={10}>Top 10</option>
+            <option value={20}>Top 20</option>
+            <option value={50}>Top 50</option>
+            <option value={100}>Top 100</option>
+          </select>
+          <div className="flex-1" />
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="px-4 py-2 bg-accent-green text-dark-bg rounded-lg hover:bg-green-400 transition-all duration-200 font-medium shadow-md flex items-center gap-2"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Fullscreen
+          </button>
+        </div>
+      )}
+      <div 
+        className={isFullscreen ? "w-full h-full" : "flex-1 min-h-0"}
+        style={isFullscreen ? chartStyle : undefined}
+      >
         <ReactECharts
           option={getChartOption(isFullscreen)}
           style={{ width: "100%", height: "100%" }}
@@ -333,7 +338,7 @@ const HoldingsChart: React.FC<HoldingsChartProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          Close
+          Exit Fullscreen
         </button>
       )}
     </div>
