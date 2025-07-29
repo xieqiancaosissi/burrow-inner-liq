@@ -1,12 +1,17 @@
-import React from "react";
-import { PacmanLoader } from "react-spinners";
+import React from 'react';
+import { ClipLoader } from 'react-spinners';
 
-export const BeatLoading = () => {
+interface LoadingProps {
+  text?: string;
+}
+
+const Loading: React.FC<LoadingProps> = ({ text = 'Loading...' }) => {
   return (
-    <div className="flex justify-center my-10">
-      <div className="w-10 h-10">
-        <PacmanLoader color="#36d7b7" />
-      </div>
+    <div className="flex flex-col items-center justify-center p-8">
+      <ClipLoader color="#00F7A5" size={40} />
+      <p className="mt-4 text-gray-300">{text}</p>
     </div>
   );
 };
+
+export default Loading;

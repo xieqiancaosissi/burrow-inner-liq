@@ -50,7 +50,10 @@ const config: Config = {
         },
         green:{
           50:"#d2ff3a",
-        }
+        },
+        'dark-bg': '#000000',
+        'dark-card': '#16161B',
+        'accent-green': '#00F7A5',
       },
     },
     plugins: [],

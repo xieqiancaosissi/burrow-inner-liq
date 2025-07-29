@@ -1,248 +1,118 @@
-import { ILiquidation, ILiquidationResponse } from "../interface/common";
-import getConfig from "./config";
-const config = getConfig();
-const {
-  LIQUIDATION_API_URL,
-  HISTORY_API_URL,
-  LIQUIDATION_RESULT_API_URL,
-  DASH_BOARD_API_URL,
-} = config;
-export async function getLiquidations(
-  key: string,
-  contract_id: string
-): Promise<ILiquidationResponse> {
-  const defaultResponse: ILiquidationResponse = {
-    timestamp: 0,
-    data: [],
-  };
-  try {
-    const liquidationsResponse = await fetch(
-      `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}&contract_id=${contract_id}`
-    );
-    const liquidationsData = await liquidationsResponse.json();
-    if (liquidationsData.code === 0 && liquidationsData.data?.values) {
-      const parsedData = JSON.parse(liquidationsData.data.values);
-      return {
-        timestamp: parsedData.timestamp,
-        data: parsedData.data,
-      };
-    }
-    return defaultResponse;
-  } catch (error) {
-    console.error("Error fetching liquidations:", error);
-    return defaultResponse;
-  }
-}
-export async function getLiquidationDetail(
-  accountId: string,
-  position: string,
-  contract_id: string,
-  priceOracleId: string
-): Promise<ILiquidation[]> {
-  const liquidationDetail = await fetch(
-    `${LIQUIDATION_API_URL}/liquidation/account/${accountId}/${position}/${contract_id}/${priceOracleId}`
-  )
-    .then((res) => res.json())
-    .catch(() => {
-      return {};
-    });
-  try {
-    return liquidationDetail.data;
-  } catch (error) {
-    return [];
-  }
-}
-
-export async function calcByRepayRatio(
-  accountId: string,
-  position: string,
-  selectedCollateralTokenId: string,
-  selectedBorrowedTokenId: string,
-  repayRatio: number,
-  contract_id: string,
-  priceOracleId: string
-): Promise<any> {
-  const requestData = {
-    accountId: accountId,
-    position: position,
-    collateralToken: selectedCollateralTokenId,
-    borrowedToken: selectedBorrowedTokenId,
-    repayRatio: repayRatio,
-    contract_id: contract_id,
-    priceOracleId: priceOracleId,
-  };
-
-  try {
-    const response = await fetch(
-      `${LIQUIDATION_API_URL}/liquidation/calc-by-repay-ratio/${contract_id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    }
-  } catch (error) {
-    return { error };
-  }
-}
-
-export async function calcByHealthFactor(
-  accountId: string,
-  position: string,
-  selectedCollateralTokenId: string,
-  selectedBorrowedTokenId: string,
-  repayValue: number,
-  targetHealthFactor: number,
-  contract_id: string,
-  priceOracleId: string
-): Promise<any> {
-  const requestData = {
-    accountId: accountId,
-    position: position,
-    collateralToken: selectedCollateralTokenId,
-    borrowedToken: selectedBorrowedTokenId,
-    repayValue: repayValue,
-    targetHealthFactor: targetHealthFactor,
-    contract_id: contract_id,
-    priceOracleId: priceOracleId,
-  };
-
-  try {
-    const response = await fetch(
-      `${LIQUIDATION_API_URL}/liquidation/generate-liquidation-command/${contract_id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    }
-  } catch (error) {
-    return { error };
-  }
-}
-
-export async function getHistoryData(
-  page_number = 1,
-  page_size = 10,
-  sort = "timestamp",
-  order = "desc",
-  liquidation_type = "all",
-  days = 7
-) {
-  const defaultResponse = {
-    data: [],
-  };
-  try {
-    const liquidationsResponse = await fetch(
-      `${HISTORY_API_URL}/burrow/get_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}&days=${days}`
-    );
-    const liquidationsData = await liquidationsResponse.json();
-    return {
-      data: liquidationsData,
-    };
-  } catch (error) {
-    console.error("Error fetching liquidations:", error);
-    return defaultResponse;
-  }
-}
-
-export const getTxId = async (receipt_id: string) => {
-  return await fetch(
-    `https://api3.nearblocks.io/v1/search/?keyword=${receipt_id}`
-  )
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
-};
-
-export const getPerice = async () => {
-  return await fetch(`https://api.ref.finance/list-token-price`)
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
-};
-
-export const getLiquidationResult = async (key: string) => {
-  return await fetch(
-    `${LIQUIDATION_RESULT_API_URL}/get-liquidation-result?key=${key}`
-  )
-    .then(async (res) => {
-      const data = await res.json();
-      return data;
-    })
-    .catch(() => {
-      return [];
-    });
-};
-
-export const getMemeLiquidateRecordPage = async (
-  page_number = 1,
-  page_size = 10,
-  sort = "timestamp",
-  order = "desc",
-  liquidation_type = "all",
-  days = 7
+export const getTokenHolders = async (
+  dimension: 'd' | 'w' | 'm' = 'd',
+  pageNumber: number = 1,
+  pageSize: number = 100
 ) => {
-  const defaultResponse = {
-    data: [],
-  };
+  // Calculate number based on dimension
+  let number = 1;
+  switch (dimension) {
+    case 'd':
+      number = 1; // 1 day
+      break;
+    case 'w':
+      number = 7; // 7 days
+      break;
+    case 'm':
+      number = 30; // 30 days
+      break;
+  }
+
+  return await fetch(
+    `https://mainnet-indexer.ref-finance.com/token_holders?number=${number}&page_number=${pageNumber}&page_size=${pageSize}`,
+    {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    }
+  )
+    .then(async (res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      return data;
+    })
+    .catch((error) => {
+      console.error('API Error:', error);
+      return { record_list: [], page_number: 1, page_size: 100, total_page: 1, total_size: 0 };
+    });
+};
+
+// Get all pages data
+export const getAllPagesData = async (dimension: 'd' | 'w' | 'm' = 'd') => {
   try {
-    const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_meme_burrow_liquidate_record_page?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&liquidation_type=${liquidation_type}&days=${days}`
-    );
-    const data = await response.json();
+    // 1. First get the first page to determine total pages
+    const firstPage = await getTokenHolders(dimension, 1, 100);
+    const totalPages = firstPage.total_page || 1;
+    
+    console.log(`Total pages: ${totalPages}, fetching all pages in parallel...`);
+    
+    // 2. Parallel requests for all pages
+    const pagePromises = [];
+    for (let page = 1; page <= totalPages; page++) {
+      pagePromises.push(getTokenHolders(dimension, page, 100));
+    }
+    
+    // 3. Wait for all page data
+    const allPages = await Promise.all(pagePromises);
+    
+    // 4. Combine all data
+    const allRecords = allPages.reduce((acc, pageData) => {
+      return acc.concat(pageData.record_list || []);
+    }, []);
+    
+    console.log(`Total records collected: ${allRecords.length}`);
+    
     return {
-      data: data,
+      record_list: allRecords,
+      total_size: allRecords.length,
+      dimension
     };
   } catch (error) {
-    console.error("Error fetching meme liquidations:", error);
-    return defaultResponse;
+    console.error('Error fetching all pages:', error);
+    return { record_list: [], total_size: 0, dimension };
   }
 };
 
-export const getMarginLiquidateLog = async (
-  page_number = 1,
-  page_size = 10,
-  sort = "block_timestamp",
-  order = "desc",
-  contract_id = "meme-burrow.ref-labs.near",
-  days = 7
+// 新增：获取多天历史数据用于排名变化图表
+export const getMultiDayData = async (
+  dimension: 'd' | 'w' | 'm' = 'd',
+  days: number = 7
 ) => {
-  const defaultResponse = {
-    data: [],
-  };
   try {
-    const response = await fetch(
-      `${HISTORY_API_URL}/burrow/get_margin_liquidate_log?page_number=${page_number}&page_size=${page_size}&sort=${sort}&order=${order}&contract_id=${contract_id}&days=${days}`
-    );
-    const data = await response.json();
+    console.log(`Fetching ${days} days of data for dimension: ${dimension}`);
+    
+    const allData: any[] = [];
+    
+    // 获取最近几天的数据
+    for (let day = 0; day < days; day++) {
+      const response = await getAllPagesData(dimension);
+      if (response.record_list && response.record_list.length > 0) {
+        // 为每天的数据添加日期标识
+        const dayData = response.record_list.map((record: any) => ({
+          ...record,
+          day: day
+        }));
+        allData.push(...dayData);
+      }
+      
+      // 添加延迟避免API限制
+      if (day < days - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    console.log(`Total multi-day records collected: ${allData.length}`);
+    
     return {
-      data: data,
+      record_list: allData,
+      total_size: allData.length,
+      dimension,
+      days
     };
   } catch (error) {
-    console.error("Error fetching margin liquidation logs:", error);
-    return defaultResponse;
+    console.error('Error fetching multi-day data:', error);
+    return { record_list: [], total_size: 0, dimension, days };
   }
 };
