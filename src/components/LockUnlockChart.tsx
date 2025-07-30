@@ -6,6 +6,7 @@ import {
   ChartType,
   TimeDimension,
 } from "../interface/types";
+import { chartColors, getWeekColor } from "../utils/colors";
 
 interface LockUnlockChartProps {
   data: LockUnlockChartDataPoint[];
@@ -68,10 +69,44 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
       lineStyle: chartDisplayType === "line" ? { width: 2 } : undefined,
       symbol: chartDisplayType === "line" ? "circle" : undefined,
       symbolSize: chartDisplayType === "line" ? 6 : undefined,
+      itemStyle:
+        chartDisplayType === "bar"
+          ? {
+              borderRadius: [4, 4, 0, 0],
+              borderWidth: 0,
+              color: getWeekColor(week),
+            }
+          : {
+              color: getWeekColor(week),
+            },
     }));
 
-    // Dynamic color array based on selected weeks (no Total series)
-    const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"]; // 4 weeks max
+    // Add total series
+    series.unshift({
+      name: "Total",
+      type: chartDisplayType,
+      data: data.map((item) => item.total),
+      smooth: chartDisplayType === "line",
+      lineStyle: chartDisplayType === "line" ? { width: 3 } : undefined,
+      symbol: chartDisplayType === "line" ? "diamond" : undefined,
+      symbolSize: chartDisplayType === "line" ? 8 : undefined,
+      itemStyle:
+        chartDisplayType === "bar"
+          ? {
+              borderRadius: [4, 4, 0, 0],
+              borderWidth: 0,
+              color: chartColors.specific.total,
+            }
+          : {
+              color: chartColors.specific.total,
+            },
+    });
+
+    // 使用柔和颜色数组
+    const colors = [
+      chartColors.specific.total, // Total - 柔和绿色
+      ...selectedWeeks.map((week) => getWeekColor(week)), // 周数颜色
+    ];
 
     return {
       backgroundColor: "transparent",
@@ -130,11 +165,15 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
         axisLine: {
           lineStyle: {
             color: "#444",
+            width: 1,
           },
         },
         axisLabel: {
           color: "#FFFFFF",
           fontSize: isFullscreenMode ? 14 : 12,
+        },
+        axisTick: {
+          show: false,
         },
       },
       yAxis: {
@@ -142,6 +181,7 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
         axisLine: {
           lineStyle: {
             color: "#444",
+            width: 1,
           },
         },
         axisLabel: {
@@ -154,7 +194,12 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
         splitLine: {
           lineStyle: {
             color: "#333",
+            width: 1,
+            type: "dashed",
           },
+        },
+        axisTick: {
+          show: false,
         },
       },
       series: series,
@@ -177,6 +222,18 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </option>
             ))}
+          </select>
+
+          {/* Display Type Selector */}
+          <select
+            value={chartDisplayType}
+            onChange={(e) =>
+              setChartDisplayType(e.target.value as "line" | "bar")
+            }
+            className="px-4 py-2 bg-dark-card text-white rounded-lg border border-gray-700 focus:border-accent-green focus:outline-none"
+          >
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
           </select>
 
           {/* Week Selection */}

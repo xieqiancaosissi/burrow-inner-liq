@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { ConversionChartDataPoint } from "../interface/types";
+import { chartColors } from "../utils/colors";
 
 interface ConversionChartProps {
   data: ConversionChartDataPoint[];
@@ -173,7 +174,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#3B82F6",
+            color: chartColors.primary.blue,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -184,7 +185,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#1D4ED8",
+            color: chartColors.secondary.blue,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -195,7 +196,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#1E40AF",
+            color: chartColors.primary.indigo,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -206,7 +207,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#1E3A8A",
+            color: chartColors.secondary.indigo,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -218,7 +219,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#EF4444",
+            color: chartColors.primary.pink,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -229,7 +230,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#DC2626",
+            color: chartColors.secondary.pink,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -240,7 +241,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#B91C1C",
+            color: chartColors.primary.orange,
             borderRadius: [4, 4, 0, 0],
           },
         },
@@ -251,7 +252,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({
           barGap: "10%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: "#991B1B",
+            color: chartColors.secondary.orange,
             borderRadius: [4, 4, 0, 0],
           },
         },

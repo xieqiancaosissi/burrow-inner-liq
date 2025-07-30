@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import {
+  RankingDataPoint,
   TimeDimension,
   TokenType,
   TopCount,
-  RankingDataPoint,
 } from "../interface/types";
+import { getRandomSoftColor } from "../utils/colors";
 
 interface RankingChartProps {
   data: RankingDataPoint[];
@@ -97,7 +98,7 @@ const RankingChart: React.FC<RankingChartProps> = ({
         symbolSize: chartType === "line" ? 6 : undefined,
         lineStyle: chartType === "line" ? { width: 2 } : undefined,
         itemStyle: {
-          color: getRandomColor(index),
+          color: getRandomSoftColor(index),
         },
         emphasis: {
           focus: "series",
@@ -213,32 +214,6 @@ const RankingChart: React.FC<RankingChartProps> = ({
       },
       series: userLines,
     };
-  };
-
-  const getRandomColor = (index: number) => {
-    const colors = [
-      "#00F7A5",
-      "#FF6B6B",
-      "#4ECDC4",
-      "#9C27B0",
-      "#FF9800",
-      "#2196F3",
-      "#4CAF50",
-      "#FFC107",
-      "#9E9E9E",
-      "#E91E63",
-      "#3F51B5",
-      "#009688",
-      "#FF5722",
-      "#795548",
-      "#607D8B",
-      "#00BCD4",
-      "#8BC34A",
-      "#FFEB3B",
-      "#9C27B0",
-      "#FF5722",
-    ];
-    return colors[index % colors.length];
   };
 
   const chartStyle = isFullscreen

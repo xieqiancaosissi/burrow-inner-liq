@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { ChartDataPoint, TimeDimension } from "../interface/types";
+import { chartColors, getTokenColor } from "../utils/colors";
 
 interface TokenHoldersChartProps {
   data: ChartDataPoint[];
@@ -146,17 +147,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           barGap: "30%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "#00F7A5" },
-                { offset: 1, color: "#00D494" },
-              ],
-            },
+            color: chartColors.gradients.blue,
             borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
@@ -168,8 +159,8 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: "#00D494" },
-                  { offset: 1, color: "#00B283" },
+                  { offset: 0, color: "#3B82F6" },
+                  { offset: 1, color: "#1D4ED8" },
                 ],
               },
             },
@@ -182,17 +173,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           barGap: "30%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "#FF6B6B" },
-                { offset: 1, color: "#FF5252" },
-              ],
-            },
+            color: chartColors.gradients.pink,
             borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
@@ -204,8 +185,8 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: "#FF5252" },
-                  { offset: 1, color: "#D32F2F" },
+                  { offset: 0, color: "#EC4899" },
+                  { offset: 1, color: "#BE185D" },
                 ],
               },
             },
@@ -218,17 +199,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           barGap: "30%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "#4ECDC4" },
-                { offset: 1, color: "#26A69A" },
-              ],
-            },
+            color: chartColors.gradients.green,
             borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
@@ -240,8 +211,8 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: "#26A69A" },
-                  { offset: 1, color: "#00796B" },
+                  { offset: 0, color: "#10B981" },
+                  { offset: 1, color: "#047857" },
                 ],
               },
             },
@@ -254,17 +225,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           barGap: "30%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "#9C27B0" },
-                { offset: 1, color: "#7B1FA2" },
-              ],
-            },
+            color: chartColors.gradients.purple,
             borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
@@ -276,8 +237,8 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: "#7B1FA2" },
-                  { offset: 1, color: "#4A148C" },
+                  { offset: 0, color: "#8B5CF6" },
+                  { offset: 1, color: "#6D28D9" },
                 ],
               },
             },
@@ -290,17 +251,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           barGap: "30%",
           barCategoryGap: "20%",
           itemStyle: {
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: "#FF9800" },
-                { offset: 1, color: "#F57C00" },
-              ],
-            },
+            color: chartColors.gradients.orange,
             borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
@@ -312,8 +263,8 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: "#F57C00" },
-                  { offset: 1, color: "#E65100" },
+                  { offset: 0, color: "#F59E0B" },
+                  { offset: 1, color: "#D97706" },
                 ],
               },
             },
