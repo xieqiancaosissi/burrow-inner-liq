@@ -6,6 +6,10 @@ import {
   TopCount,
   RankingDataPoint,
   UserRanking,
+  AllPagesConversionDataResponse,
+  ConversionChartDataPoint,
+  ConversionRecord,
+  LockUnlockChartDataPoint,
 } from "../interface/types";
 import { ftGetTokenMetadata } from "../services/near";
 import { toReadableNumber } from "./number";
@@ -319,4 +323,219 @@ export const processMultiDayHoldingsData = async (
     const dateB = new Date(b.time);
     return dateA.getTime() - dateB.getTime();
   });
+};
+
+// Parse target_amount with proper decimals for conversion data
+const parseTargetAmount = async (
+  targetAmount: string,
+  tokenId: string
+): Promise<number> => {
+  try {
+    const metadata = await getTokenMetadata(tokenId);
+    const readableAmount = toReadableNumber(metadata.decimals, targetAmount);
+    return parseFloat(readableAmount);
+  } catch (error) {
+    console.error(`Error parsing target_amount for ${tokenId}:`, error);
+    return 0;
+  }
+};
+
+// Process conversion data for chart
+export const processConversionData = async (
+  data: AllPagesConversionDataResponse
+): Promise<ConversionChartDataPoint[]> => {
+  const { record_list } = data;
+
+  if (!record_list || record_list.length === 0) {
+    return [];
+  }
+
+  console.log("Processing conversion data:", record_list.length, "records");
+  console.log("Sample record:", record_list[0]);
+
+  // Group records by timestamp
+  const groupedByTime = new Map<number, ConversionRecord[]>();
+  
+  record_list.forEach((record) => {
+    const timestamp = record.timestamp;
+    if (!groupedByTime.has(timestamp)) {
+      groupedByTime.set(timestamp, []);
+    }
+    groupedByTime.get(timestamp)!.push(record);
+  });
+
+  console.log("Grouped by time:", groupedByTime.size, "time points");
+
+  const chartData: ConversionChartDataPoint[] = [];
+
+  // Process each time group
+  for (const [timestamp, records] of groupedByTime) {
+    // Initialize data structure for this time point
+    const timeData: ConversionChartDataPoint = {
+      time: formatTimestamp(timestamp),
+      ref_0week: 0,
+      ref_5weeks: 0,
+      ref_10weeks: 0,
+      ref_20weeks: 0,
+      brrr_0week: 0,
+      brrr_5weeks: 0,
+      brrr_10weeks: 0,
+      brrr_20weeks: 0,
+    };
+
+    // Process each record
+    for (const record of records) {
+      // Determine if it's Ref or Brrr based on account_id pattern
+      // Since all records have the same token_id, we need to use account_id pattern
+      // Ref accounts typically have .near or .tg suffix, Brrr accounts are usually hex strings
+      const accountId = record.account_id;
+      const isRef = accountId.includes('.near') || accountId.includes('.tg');
+      const isBrrr = !isRef; // Assume non-.near accounts are Brrr
+      
+      // Parse target_amount (Rhea quantity) using proper metadata
+      const rheaQuantity = await parseTargetAmount(record.target_amount, TOKEN_IDS.RHEA);
+      
+      // Determine week category based on locking_duration
+      const weekCategory = record.locking_duration;
+      
+      // Add to appropriate category
+      if (isRef) {
+        switch (weekCategory) {
+          case 0:
+            timeData.ref_0week += rheaQuantity;
+            break;
+          case 5:
+            timeData.ref_5weeks += rheaQuantity;
+            break;
+          case 10:
+            timeData.ref_10weeks += rheaQuantity;
+            break;
+          case 20:
+            timeData.ref_20weeks += rheaQuantity;
+            break;
+          default:
+            console.warn(`Unknown week category: ${weekCategory} for Ref account: ${accountId}`);
+        }
+      } else {
+        switch (weekCategory) {
+          case 0:
+            timeData.brrr_0week += rheaQuantity;
+            break;
+          case 5:
+            timeData.brrr_5weeks += rheaQuantity;
+            break;
+          case 10:
+            timeData.brrr_10weeks += rheaQuantity;
+            break;
+          case 20:
+            timeData.brrr_20weeks += rheaQuantity;
+            break;
+          default:
+            console.warn(`Unknown week category: ${weekCategory} for Brrr account: ${accountId}`);
+        }
+      }
+    }
+
+    chartData.push(timeData);
+  }
+
+  // Sort by timestamp
+  chartData.sort((a, b) => {
+    const timeA = new Date(a.time).getTime();
+    const timeB = new Date(b.time).getTime();
+    return timeA - timeB;
+  });
+
+  console.log("Processed conversion data:", chartData);
+  return chartData;
+};
+
+// Process lock/unlock data for chart
+export const processLockUnlockData = async (
+  data: AllPagesConversionDataResponse,
+  chartType: "lock" | "unlock"
+): Promise<LockUnlockChartDataPoint[]> => {
+  const { record_list } = data;
+
+  if (!record_list || record_list.length === 0) {
+    return [];
+  }
+
+  console.log(`Processing ${chartType} data:`, record_list.length, "records");
+
+  // Filter records by type (lock or unlock) - case insensitive
+  const filteredRecords = record_list.filter(record => 
+    record.type.toLowerCase() === chartType.toLowerCase()
+  );
+  console.log(`Filtered ${chartType} records:`, filteredRecords.length);
+
+  // Group records by timestamp
+  const groupedByTime = new Map<number, ConversionRecord[]>();
+  
+  filteredRecords.forEach((record) => {
+    const timestamp = record.timestamp;
+    if (!groupedByTime.has(timestamp)) {
+      groupedByTime.set(timestamp, []);
+    }
+    groupedByTime.get(timestamp)!.push(record);
+  });
+
+  console.log("Grouped by time:", groupedByTime.size, "time points");
+
+  const chartData: LockUnlockChartDataPoint[] = [];
+
+  // Process each time group
+  for (const [timestamp, records] of groupedByTime) {
+    // Initialize data structure for this time point
+    const timeData: LockUnlockChartDataPoint = {
+      time: formatTimestamp(timestamp),
+      total: 0,
+      "0week": 0,
+      "5week": 0,
+      "10week": 0,
+      "20week": 0,
+    };
+
+    // Process each record
+    for (const record of records) {
+      // Parse target_amount (Rhea quantity) using proper metadata
+      const rheaQuantity = await parseTargetAmount(record.target_amount, TOKEN_IDS.RHEA);
+      
+      // Determine week category based on locking_duration
+      const weekCategory = record.locking_duration;
+      
+      // Add to appropriate category
+      switch (weekCategory) {
+        case 0:
+          timeData["0week"] += rheaQuantity;
+          break;
+        case 5:
+          timeData["5week"] += rheaQuantity;
+          break;
+        case 10:
+          timeData["10week"] += rheaQuantity;
+          break;
+        case 20:
+          timeData["20week"] += rheaQuantity;
+          break;
+        default:
+          console.warn(`Unknown week category: ${weekCategory} for ${chartType} record: ${record.account_id}`);
+      }
+      
+      // Add to total
+      timeData.total += rheaQuantity;
+    }
+
+    chartData.push(timeData);
+  }
+
+  // Sort by timestamp
+  chartData.sort((a, b) => {
+    const timeA = new Date(a.time).getTime();
+    const timeB = new Date(b.time).getTime();
+    return timeA - timeB;
+  });
+
+  console.log(`Processed ${chartType} data:`, chartData);
+  return chartData;
 };

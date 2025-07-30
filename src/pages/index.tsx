@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { getAllPagesData } from "../services/api";
+import { getAllPagesData, getAllPagesConversionData } from "../services/api";
 import {
   processTokenHoldersData,
   processRankingData,
   processMultiDayHoldingsData,
+  processConversionData,
+  processLockUnlockData,
 } from "../utils/dataProcessor";
 import {
   ChartDataPoint,
@@ -11,22 +13,32 @@ import {
   TokenType,
   TopCount,
   RankingDataPoint,
+  ConversionChartDataPoint,
+  LockUnlockChartDataPoint,
+  WeekOption,
+  ChartType,
 } from "../interface/types";
 import DashboardLayout from "../components/DashboardLayout";
 import Loading from "../components/Loading";
 import TokenHoldersChart from "../components/TokenHoldersChart";
 import RankingChart from "../components/RankingChart";
 import HoldingsChart from "@/components/HoldingsChart";
+import ConversionChart from "../components/ConversionChart";
+import LockUnlockChart from "../components/LockUnlockChart";
 import TimeDimensionSelector from "../components/TimeDimensionSelector";
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [rankingData, setRankingData] = useState<RankingDataPoint[]>([]);
   const [holdingsData, setHoldingsData] = useState<RankingDataPoint[]>([]);
+  const [conversionData, setConversionData] = useState<ConversionChartDataPoint[]>([]);
+  const [lockUnlockData, setLockUnlockData] = useState<LockUnlockChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [dimension, setDimension] = useState<TimeDimension>("d");
   const [selectedToken, setSelectedToken] = useState<TokenType>("ref");
   const [selectedTopCount, setSelectedTopCount] = useState<TopCount>(10);
+  const [selectedWeeks, setSelectedWeeks] = useState<WeekOption[]>([0, 5, 10, 20]);
+  const [chartType, setChartType] = useState<ChartType>("lock");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +49,10 @@ const Dashboard: React.FC = () => {
         // Get all pages data
         const response = await getAllPagesData(dimension);
         console.log("API response:", response);
+
+        // Get conversion data
+        const conversionResponse = await getAllPagesConversionData(dimension);
+        console.log("Conversion API response:", conversionResponse);
 
         if (response.record_list && response.record_list.length > 0) {
           // Process data for total changes chart
@@ -65,18 +81,36 @@ const Dashboard: React.FC = () => {
           setRankingData([]);
           setHoldingsData([]);
         }
+
+        // Process conversion data
+        if (conversionResponse.record_list && conversionResponse.record_list.length > 0) {
+          const processedConversionData = await processConversionData(conversionResponse);
+          console.log("Processed conversion data:", processedConversionData);
+          setConversionData(processedConversionData);
+
+          // Process lock/unlock data using the same conversion data
+          const processedLockUnlockData = await processLockUnlockData(conversionResponse, chartType);
+          console.log("Processed lock/unlock data:", processedLockUnlockData);
+          setLockUnlockData(processedLockUnlockData);
+        } else {
+          console.warn("No conversion data received from API");
+          setConversionData([]);
+          setLockUnlockData([]);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         setData([]);
         setRankingData([]);
         setHoldingsData([]);
+        setConversionData([]);
+        setLockUnlockData([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [dimension, selectedToken, selectedTopCount]);
+  }, [dimension, selectedToken, selectedTopCount, chartType]);
 
   if (loading) {
     return <Loading />;
@@ -92,6 +126,14 @@ const Dashboard: React.FC = () => {
 
   const handleTopCountChange = (newTopCount: TopCount) => {
     setSelectedTopCount(newTopCount);
+  };
+
+  const handleWeekSelectionChange = (weeks: WeekOption[]) => {
+    setSelectedWeeks(weeks);
+  };
+
+  const handleChartTypeChange = (type: ChartType) => {
+    setChartType(type);
   };
 
   // Define chart configurations
@@ -176,12 +218,19 @@ const Dashboard: React.FC = () => {
     {
       id: "conversion",
       title: "Ref/Brrr Conversion Data",
-      description: "Shows conversion data for Ref and Brrr tokens.",
+      description: "Shows conversion data for Ref and Brrr tokens by locking duration.",
       component: (
-        <div className="bg-dark-card rounded-lg p-4 h-[600px] flex flex-col items-center justify-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Ref/Brrr Conversion Data
-          </h2>
+        <div className="bg-dark-card rounded-lg p-4 h-[600px] flex flex-col">
+          {conversionData.length > 0 ? (
+            <ConversionChart
+              data={conversionData}
+              dimension={dimension}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              No conversion data available
+            </div>
+          )}
         </div>
       ),
     },
@@ -190,10 +239,15 @@ const Dashboard: React.FC = () => {
       title: "User Convert Lock/unLock Top100",
       description: "Shows lock/unlock data for Top100 users.",
       component: (
-        <div className="bg-dark-card rounded-lg p-4 h-[600px] flex flex-col items-center justify-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            User Convert Lock/unLock Top100
-          </h2>
+        <div className="bg-dark-card rounded-lg p-4 h-[600px] flex flex-col">
+          <LockUnlockChart
+            data={lockUnlockData}
+            dimension={dimension}
+            selectedWeeks={selectedWeeks}
+            chartType={chartType}
+            onWeekSelectionChange={handleWeekSelectionChange}
+            onChartTypeChange={handleChartTypeChange}
+          />
         </div>
       ),
     },
