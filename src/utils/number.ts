@@ -12,6 +12,23 @@ export function format_usd(n: string | number) {
   return "$" + number.toFixed(4);
 }
 
+// 新增：通用数字格式化函数，使用K、M、B表示
+export const formatNumberWithSuffix = (value: number, decimals: number = 2): string => {
+  if (value >= 1e9) {
+    return (value / 1e9).toFixed(decimals) + "B";
+  } else if (value >= 1e6) {
+    return (value / 1e6).toFixed(decimals) + "M";
+  } else if (value >= 1e3) {
+    return (value / 1e3).toFixed(decimals) + "K";
+  }
+  return value.toFixed(decimals);
+};
+
+// 新增：用于tooltip的数字格式化函数
+export const formatNumberForTooltip = (value: number): string => {
+  return formatNumberWithSuffix(value, 2);
+};
+
 export const toReadableNumber = (
   decimals: number,
   number: string = "0"

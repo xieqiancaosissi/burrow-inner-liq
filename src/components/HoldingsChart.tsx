@@ -7,6 +7,7 @@ import {
   TopCount,
 } from "../interface/types";
 import { getRandomSoftColor } from "../utils/colors";
+import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
 
 interface HoldingsChartProps {
   data: RankingDataPoint[];
@@ -133,7 +134,7 @@ const HoldingsChart: React.FC<HoldingsChartProps> = ({
           let result = `<div style="font-weight: bold; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((param: any) => {
             if (param.value !== null) {
-              const value = formatNumber(param.value);
+              const value = formatNumberForTooltip(param.value);
               result += `<div style="margin: 4px 0;">
                 <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
                 <span style="font-weight: 500;">${param.seriesName}:</span> 
@@ -193,7 +194,7 @@ const HoldingsChart: React.FC<HoldingsChartProps> = ({
           fontSize: isFullscreenMode ? 14 : 12,
           color: "#A0A0A0",
           formatter: function (value: number) {
-            return formatNumber(value);
+            return formatNumberWithSuffix(value);
           },
         },
         axisLine: {
@@ -213,14 +214,7 @@ const HoldingsChart: React.FC<HoldingsChartProps> = ({
   };
 
   const formatNumber = (value: number) => {
-    if (value >= 1e9) {
-      return (value / 1e9).toFixed(2) + "B";
-    } else if (value >= 1e6) {
-      return (value / 1e6).toFixed(2) + "M";
-    } else if (value >= 1e3) {
-      return (value / 1e3).toFixed(2) + "K";
-    }
-    return value?.toFixed(2) ?? "0";
+    return formatNumberWithSuffix(value);
   };
 
   const chartStyle = isFullscreen

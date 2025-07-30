@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { ChartDataPoint, TimeDimension } from "../interface/types";
-import { chartColors, getTokenColor } from "../utils/colors";
+import { chartColors } from "../utils/colors";
+import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
 
 interface TokenHoldersChartProps {
   data: ChartDataPoint[];
@@ -66,10 +67,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
         formatter: function (params: any) {
           let result = `<div style="font-weight: bold; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((param: any) => {
-            const value = param.value.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            });
+            const value = formatNumberForTooltip(param.value);
             result += `<div style="margin: 4px 0;">
               <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
               <span style="font-weight: 500;">${param.seriesName}:</span> 
@@ -117,14 +115,7 @@ const TokenHoldersChart: React.FC<TokenHoldersChartProps> = ({
           fontSize: isFullscreenMode ? 14 : 12,
           color: "#A0A0A0",
           formatter: function (value: number) {
-            if (value >= 1e9) {
-              return (value / 1e9).toFixed(1) + "B";
-            } else if (value >= 1e6) {
-              return (value / 1e6).toFixed(1) + "M";
-            } else if (value >= 1e3) {
-              return (value / 1e3).toFixed(1) + "K";
-            }
-            return value.toFixed(1);
+            return formatNumberWithSuffix(value, 1);
           },
         },
         axisLine: {

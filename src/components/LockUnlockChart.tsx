@@ -7,6 +7,7 @@ import {
   TimeDimension,
 } from "../interface/types";
 import { chartColors, getWeekColor } from "../utils/colors";
+import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
 
 interface LockUnlockChartProps {
   data: LockUnlockChartDataPoint[];
@@ -139,10 +140,7 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
         formatter: function (params: any) {
           let result = `<div style="font-weight: bold; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((param: any) => {
-            const value = param.value.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            });
+            const value = formatNumberForTooltip(param.value);
             result += `<div style="margin: 4px 0;">
               <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
               <span style="font-weight: 500;">${param.seriesName}:</span> 
@@ -188,7 +186,7 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
           color: "#FFFFFF",
           fontSize: isFullscreenMode ? 14 : 12,
           formatter: function (value: number) {
-            return value.toLocaleString("en-US");
+            return formatNumberWithSuffix(value);
           },
         },
         splitLine: {

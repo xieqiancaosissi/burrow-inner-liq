@@ -7,6 +7,7 @@ import {
   TopCount,
 } from "../interface/types";
 import { getRandomSoftColor } from "../utils/colors";
+import { formatNumberForTooltip } from "../utils/number";
 
 interface RankingChartProps {
   data: RankingDataPoint[];
@@ -138,10 +139,19 @@ const RankingChart: React.FC<RankingChartProps> = ({
           let result = `<div style="font-weight: bold; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((param: any) => {
             if (param.value !== null) {
+              // 找到对应的用户数据来获取balance
+              const timeIndex = timePoints.indexOf(params[0].axisValue);
+              const userRanking = data[timeIndex]?.userRankings.find(
+                (u) => u.account_id.includes(param.seriesName.split('...')[0])
+              );
+              
+              const balance = userRanking?.balance || 0;
+              const balanceFormatted = formatNumberForTooltip(balance);
+              
               result += `<div style="margin: 4px 0;">
                 <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
                 <span style="font-weight: 500;">${param.seriesName}:</span> 
-                <span style="float: right; font-weight: bold;">Rank #${param.value}</span>
+                <span style="float: right; font-weight: bold;">Rank #${param.value} (${balanceFormatted})</span>
               </div>`;
             }
           });

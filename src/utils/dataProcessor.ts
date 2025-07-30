@@ -332,8 +332,15 @@ const parseTargetAmount = async (
 ): Promise<number> => {
   try {
     const metadata = await getTokenMetadata(tokenId);
+    console.log(`Parsing target_amount for ${tokenId}:`, {
+      targetAmount,
+      decimals: metadata.decimals,
+      symbol: metadata.symbol
+    });
     const readableAmount = toReadableNumber(metadata.decimals, targetAmount);
-    return parseFloat(readableAmount);
+    const result = parseFloat(readableAmount);
+    console.log(`Parsed result: ${readableAmount} -> ${result}`);
+    return result;
   } catch (error) {
     console.error(`Error parsing target_amount for ${tokenId}:`, error);
     return 0;
@@ -383,6 +390,8 @@ export const processConversionData = async (
       brrr_20weeks: 0,
     };
 
+    console.log(`Processing ${records.length} records for timestamp ${timestamp}`);
+
     // Process each record
     for (const record of records) {
       // Determine if it's Ref or Brrr based on account_id pattern
@@ -400,6 +409,8 @@ export const processConversionData = async (
 
       // Determine week category based on locking_duration
       const weekCategory = record.locking_duration;
+
+      console.log(`Record: ${accountId}, isRef: ${isRef}, week: ${weekCategory}, target_amount: ${record.target_amount}, parsed: ${rheaQuantity}`);
 
       // Add to appropriate category
       if (isRef) {
@@ -443,6 +454,7 @@ export const processConversionData = async (
       }
     }
 
+    console.log("Time data result:", timeData);
     chartData.push(timeData);
   }
 
