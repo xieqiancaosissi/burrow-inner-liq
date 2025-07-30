@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
-import { LockUnlockChartDataPoint, WeekOption, ChartType, TimeDimension } from "../interface/types";
+import {
+  LockUnlockChartDataPoint,
+  WeekOption,
+  ChartType,
+  TimeDimension,
+} from "../interface/types";
 
 interface LockUnlockChartProps {
   data: LockUnlockChartDataPoint[];
@@ -20,7 +25,9 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
   onChartTypeChange,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [chartDisplayType, setChartDisplayType] = useState<"line" | "bar">("bar");
+  const [chartDisplayType, setChartDisplayType] = useState<"line" | "bar">(
+    "bar"
+  );
 
   const getDimensionLabel = (dim: string) => {
     switch (dim) {
@@ -40,7 +47,7 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
 
   const handleWeekToggle = (week: WeekOption) => {
     if (selectedWeeks.includes(week)) {
-      onWeekSelectionChange(selectedWeeks.filter(w => w !== week));
+      onWeekSelectionChange(selectedWeeks.filter((w) => w !== week));
     } else {
       onWeekSelectionChange([...selectedWeeks, week]);
     }
@@ -48,12 +55,15 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
 
   const getChartOption = (isFullscreenMode: boolean = false) => {
     const times = data.map((item) => item.time);
-    
+
     // Prepare series data for selected weeks
-    const series = selectedWeeks.map(week => ({
+    const series = selectedWeeks.map((week) => ({
       name: `${week} Week`,
       type: chartDisplayType,
-      data: data.map((item) => item[`${week}week` as keyof LockUnlockChartDataPoint] as number),
+      data: data.map(
+        (item) =>
+          item[`${week}week` as keyof LockUnlockChartDataPoint] as number
+      ),
       smooth: chartDisplayType === "line",
       lineStyle: chartDisplayType === "line" ? { width: 2 } : undefined,
       symbol: chartDisplayType === "line" ? "circle" : undefined,
@@ -66,7 +76,9 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
     return {
       backgroundColor: "transparent",
       title: {
-        text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Data (${getDimensionLabel(dimension)})`,
+        text: `${
+          chartType.charAt(0).toUpperCase() + chartType.slice(1)
+        } Data (${getDimensionLabel(dimension)})`,
         left: "center",
         top: 10,
         textStyle: {
@@ -187,7 +199,7 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
           </div>
 
           <div className="flex-1" />
-          
+
           {/* Fullscreen Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
@@ -206,21 +218,25 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
       )}
 
       {/* Chart or No Data Message */}
-      <div 
+      <div
         className={isFullscreen ? "w-full h-full" : "flex-1 min-h-0"}
-        style={isFullscreen ? {
-          width: "100vw",
-          height: "100vh",
-          position: "fixed" as const,
-          top: 0,
-          left: 0,
-          zIndex: 9999,
-          backgroundColor: "#000000",
-        } : undefined}
+        style={
+          isFullscreen
+            ? {
+                width: "100vw",
+                height: "100vh",
+                position: "fixed" as const,
+                top: 0,
+                left: 0,
+                zIndex: 9999,
+                backgroundColor: "#000000",
+              }
+            : undefined
+        }
       >
         {data && data.length > 0 ? (
           <ReactECharts
-            key={`${chartType}-${chartDisplayType}-${selectedWeeks.join('-')}`}
+            key={`${chartType}-${chartDisplayType}-${selectedWeeks.join("-")}`}
             option={getChartOption(isFullscreen)}
             style={{ width: "100%", height: "100%" }}
             opts={{ renderer: "canvas" }}
@@ -252,4 +268,4 @@ const LockUnlockChart: React.FC<LockUnlockChartProps> = ({
   );
 };
 
-export default LockUnlockChart; 
+export default LockUnlockChart;

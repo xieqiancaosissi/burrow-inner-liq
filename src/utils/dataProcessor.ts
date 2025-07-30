@@ -355,7 +355,7 @@ export const processConversionData = async (
 
   // Group records by timestamp
   const groupedByTime = new Map<number, ConversionRecord[]>();
-  
+
   record_list.forEach((record) => {
     const timestamp = record.timestamp;
     if (!groupedByTime.has(timestamp)) {
@@ -389,15 +389,18 @@ export const processConversionData = async (
       // Since all records have the same token_id, we need to use account_id pattern
       // Ref accounts typically have .near or .tg suffix, Brrr accounts are usually hex strings
       const accountId = record.account_id;
-      const isRef = accountId.includes('.near') || accountId.includes('.tg');
+      const isRef = accountId.includes(".near") || accountId.includes(".tg");
       const isBrrr = !isRef; // Assume non-.near accounts are Brrr
-      
+
       // Parse target_amount (Rhea quantity) using proper metadata
-      const rheaQuantity = await parseTargetAmount(record.target_amount, TOKEN_IDS.RHEA);
-      
+      const rheaQuantity = await parseTargetAmount(
+        record.target_amount,
+        TOKEN_IDS.RHEA
+      );
+
       // Determine week category based on locking_duration
       const weekCategory = record.locking_duration;
-      
+
       // Add to appropriate category
       if (isRef) {
         switch (weekCategory) {
@@ -414,7 +417,9 @@ export const processConversionData = async (
             timeData.ref_20weeks += rheaQuantity;
             break;
           default:
-            console.warn(`Unknown week category: ${weekCategory} for Ref account: ${accountId}`);
+            console.warn(
+              `Unknown week category: ${weekCategory} for Ref account: ${accountId}`
+            );
         }
       } else {
         switch (weekCategory) {
@@ -431,7 +436,9 @@ export const processConversionData = async (
             timeData.brrr_20weeks += rheaQuantity;
             break;
           default:
-            console.warn(`Unknown week category: ${weekCategory} for Brrr account: ${accountId}`);
+            console.warn(
+              `Unknown week category: ${weekCategory} for Brrr account: ${accountId}`
+            );
         }
       }
     }
@@ -464,14 +471,14 @@ export const processLockUnlockData = async (
   console.log(`Processing ${chartType} data:`, record_list.length, "records");
 
   // Filter records by type (lock or unlock) - case insensitive
-  const filteredRecords = record_list.filter(record => 
-    record.type.toLowerCase() === chartType.toLowerCase()
+  const filteredRecords = record_list.filter(
+    (record) => record.type.toLowerCase() === chartType.toLowerCase()
   );
   console.log(`Filtered ${chartType} records:`, filteredRecords.length);
 
   // Group records by timestamp
   const groupedByTime = new Map<number, ConversionRecord[]>();
-  
+
   filteredRecords.forEach((record) => {
     const timestamp = record.timestamp;
     if (!groupedByTime.has(timestamp)) {
@@ -499,11 +506,14 @@ export const processLockUnlockData = async (
     // Process each record
     for (const record of records) {
       // Parse target_amount (Rhea quantity) using proper metadata
-      const rheaQuantity = await parseTargetAmount(record.target_amount, TOKEN_IDS.RHEA);
-      
+      const rheaQuantity = await parseTargetAmount(
+        record.target_amount,
+        TOKEN_IDS.RHEA
+      );
+
       // Determine week category based on locking_duration
       const weekCategory = record.locking_duration;
-      
+
       // Add to appropriate category
       switch (weekCategory) {
         case 0:
@@ -519,9 +529,11 @@ export const processLockUnlockData = async (
           timeData["20week"] += rheaQuantity;
           break;
         default:
-          console.warn(`Unknown week category: ${weekCategory} for ${chartType} record: ${record.account_id}`);
+          console.warn(
+            `Unknown week category: ${weekCategory} for ${chartType} record: ${record.account_id}`
+          );
       }
-      
+
       // Add to total
       timeData.total += rheaQuantity;
     }

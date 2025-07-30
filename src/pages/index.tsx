@@ -31,13 +31,19 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [rankingData, setRankingData] = useState<RankingDataPoint[]>([]);
   const [holdingsData, setHoldingsData] = useState<RankingDataPoint[]>([]);
-  const [conversionData, setConversionData] = useState<ConversionChartDataPoint[]>([]);
-  const [lockUnlockData, setLockUnlockData] = useState<LockUnlockChartDataPoint[]>([]);
+  const [conversionData, setConversionData] = useState<
+    ConversionChartDataPoint[]
+  >([]);
+  const [lockUnlockData, setLockUnlockData] = useState<
+    LockUnlockChartDataPoint[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [dimension, setDimension] = useState<TimeDimension>("d");
   const [selectedToken, setSelectedToken] = useState<TokenType>("ref");
   const [selectedTopCount, setSelectedTopCount] = useState<TopCount>(10);
-  const [selectedWeeks, setSelectedWeeks] = useState<WeekOption[]>([0, 5, 10, 20]);
+  const [selectedWeeks, setSelectedWeeks] = useState<WeekOption[]>([
+    0, 5, 10, 20,
+  ]);
   const [chartType, setChartType] = useState<ChartType>("lock");
 
   useEffect(() => {
@@ -83,13 +89,21 @@ const Dashboard: React.FC = () => {
         }
 
         // Process conversion data
-        if (conversionResponse.record_list && conversionResponse.record_list.length > 0) {
-          const processedConversionData = await processConversionData(conversionResponse);
+        if (
+          conversionResponse.record_list &&
+          conversionResponse.record_list.length > 0
+        ) {
+          const processedConversionData = await processConversionData(
+            conversionResponse
+          );
           console.log("Processed conversion data:", processedConversionData);
           setConversionData(processedConversionData);
 
           // Process lock/unlock data using the same conversion data
-          const processedLockUnlockData = await processLockUnlockData(conversionResponse, chartType);
+          const processedLockUnlockData = await processLockUnlockData(
+            conversionResponse,
+            chartType
+          );
           console.log("Processed lock/unlock data:", processedLockUnlockData);
           setLockUnlockData(processedLockUnlockData);
         } else {
@@ -218,14 +232,12 @@ const Dashboard: React.FC = () => {
     {
       id: "conversion",
       title: "Ref/Brrr Conversion Data",
-      description: "Shows conversion data for Ref and Brrr tokens by locking duration.",
+      description:
+        "Shows conversion data for Ref and Brrr tokens by locking duration.",
       component: (
         <div className="bg-dark-card rounded-lg p-4 h-[600px] flex flex-col">
           {conversionData.length > 0 ? (
-            <ConversionChart
-              data={conversionData}
-              dimension={dimension}
-            />
+            <ConversionChart data={conversionData} dimension={dimension} />
           ) : (
             <div className="text-center py-8 text-gray-400">
               No conversion data available

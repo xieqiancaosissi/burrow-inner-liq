@@ -174,7 +174,9 @@ export const getConversionTokenData = async (
 };
 
 // Get all pages conversion data
-export const getAllPagesConversionData = async (dimension: "d" | "w" | "m" = "d") => {
+export const getAllPagesConversionData = async (
+  dimension: "d" | "w" | "m" = "d"
+) => {
   try {
     // 1. First get the first page to determine total pages
     const firstPage = await getConversionTokenData(dimension, 1, 100);

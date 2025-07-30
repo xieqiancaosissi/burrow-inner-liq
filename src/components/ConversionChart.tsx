@@ -7,7 +7,10 @@ interface ConversionChartProps {
   dimension: string;
 }
 
-const ConversionChart: React.FC<ConversionChartProps> = ({ data, dimension }) => {
+const ConversionChart: React.FC<ConversionChartProps> = ({
+  data,
+  dimension,
+}) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   if (!data || data.length === 0) {
@@ -33,13 +36,13 @@ const ConversionChart: React.FC<ConversionChartProps> = ({ data, dimension }) =>
 
   const getChartOption = (isFullscreenMode: boolean = false) => {
     const times = data.map((item) => item.time);
-    
+
     // Prepare series data for each category
     const ref0WeekData = data.map((item) => item.ref_0week);
     const ref5WeeksData = data.map((item) => item.ref_5weeks);
     const ref10WeeksData = data.map((item) => item.ref_10weeks);
     const ref20WeeksData = data.map((item) => item.ref_20weeks);
-    
+
     const brrr0WeekData = data.map((item) => item.brrr_0week);
     const brrr5WeeksData = data.map((item) => item.brrr_5weeks);
     const brrr10WeeksData = data.map((item) => item.brrr_10weeks);
@@ -89,8 +92,14 @@ const ConversionChart: React.FC<ConversionChartProps> = ({ data, dimension }) =>
       },
       legend: {
         data: [
-          "Ref 0 Week", "Ref 5 Weeks", "Ref 10 Weeks", "Ref 20 Weeks",
-          "Brrr 0 Week", "Brrr 5 Weeks", "Brrr 10 Weeks", "Brrr 20 Weeks"
+          "Ref 0 Week",
+          "Ref 5 Weeks",
+          "Ref 10 Weeks",
+          "Ref 20 Weeks",
+          "Brrr 0 Week",
+          "Brrr 5 Weeks",
+          "Brrr 10 Weeks",
+          "Brrr 20 Weeks",
         ],
         top: 60,
         textStyle: {
@@ -100,7 +109,7 @@ const ConversionChart: React.FC<ConversionChartProps> = ({ data, dimension }) =>
         itemGap: 10,
         itemWidth: 15,
         itemHeight: 10,
-        type: 'scroll',
+        type: "scroll",
       },
       grid: {
         left: "5%",
@@ -314,4 +323,4 @@ const ConversionChart: React.FC<ConversionChartProps> = ({ data, dimension }) =>
   );
 };
 
-export default ConversionChart; 
+export default ConversionChart;
