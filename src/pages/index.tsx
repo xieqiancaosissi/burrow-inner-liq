@@ -395,7 +395,7 @@ const HomePage: React.FC = () => {
           <div className="rounded-xl overflow-hidden border border-[#303037]">
             <div className="px-6 py-4 border-b border-[#303037]">
               <h3 className="text-xl font-semibold text-white">
-                {selectedToken.name} Total - {formatNumberWithSuffix(top100Total)}
+                {selectedToken.name} Total - {formatNumberWithSuffix(top100Total)} ({sortByDate})
                 <span className="text-sm text-gray-400 ml-4">
                 Showing {sortedUserData.length} users across{" "}
                 {filteredDates.length} days
