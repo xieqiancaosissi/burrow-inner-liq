@@ -258,6 +258,28 @@ const HomePage: React.FC = () => {
   const filteredDates = getFilteredDates();
   const sortedUserData = getSortedUserData();
 
+  // 计算当前token的top100总数量
+  const getTop100TotalBalance = () => {
+    if (!sortByDate || sortedUserData.length === 0) return 0;
+    
+    let total = 0;
+    sortedUserData.slice(0, 100).forEach(user => {
+      const rankData = user.ranks[sortByDate];
+      if (rankData) {
+        const metadata = tokenMetadata[selectedToken.id];
+        if (metadata && metadata.decimals !== undefined) {
+          const readableNumber = toReadableNumber(metadata.decimals, rankData.balance);
+          total += parseFloat(readableNumber);
+        } else {
+          total += parseFloat(rankData.balance);
+        }
+      }
+    });
+    return total;
+  };
+
+  const top100Total = getTop100TotalBalance();
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8">
@@ -340,12 +362,12 @@ const HomePage: React.FC = () => {
           <div className="rounded-xl overflow-hidden border border-[#303037]">
             <div className="px-6 py-4 border-b border-[#303037]">
               <h3 className="text-xl font-semibold text-white">
-                {selectedToken.name} - User Rankings
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">
+                {selectedToken.name} Total - {formatNumberWithSuffix(top100Total)}
+                <span className="text-sm text-gray-400 ml-4">
                 Showing {sortedUserData.length} users across{" "}
                 {filteredDates.length} days
-              </p>
+              </span>
+              </h3>
             </div>
 
             <div className="overflow-x-auto">
