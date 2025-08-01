@@ -313,6 +313,24 @@ const HomePage: React.FC = () => {
 
   const top100Total = getTop100TotalBalance();
 
+  // 计算每个日期的总数量
+  const getDateTotalBalance = (date: string) => {
+    let total = 0;
+    userRankData.forEach(user => {
+      const rankData = user.ranks[date];
+      if (rankData) {
+        const metadata = tokenMetadata[selectedToken.id];
+        if (metadata && metadata.decimals !== undefined) {
+          const readableNumber = toReadableNumber(metadata.decimals, rankData.balance);
+          total += parseFloat(readableNumber);
+        } else {
+          total += parseFloat(rankData.balance);
+        }
+      }
+    });
+    return total;
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8">
@@ -410,22 +428,28 @@ const HomePage: React.FC = () => {
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-10 bg-black min-w-[200px]">
                       User
                     </th>
-                    {filteredDates.map((date, index) => (
-                      <th
-                        key={date}
-                        className={`px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer transition-colors ${
-                          index === 0 ? 'sticky left-[200px] z-10 bg-black min-w-[150px]' : 'min-w-[200px]'
-                        }`}
-                        onClick={() => handleDateSort(date)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{date}</span>
-                          {sortByDate === date && (
-                            <span className="text-green-400 text-lg">↓</span>
-                          )}
-                        </div>
-                      </th>
-                    ))}
+                    {filteredDates.map((date, index) => {
+                      const dateTotal = getDateTotalBalance(date);
+                      return (
+                        <th
+                          key={date}
+                          className={`px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer transition-colors ${
+                            index === 0 ? 'sticky left-[200px] z-10 bg-black min-w-[150px]' : 'min-w-[200px]'
+                          }`}
+                          onClick={() => handleDateSort(date)}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span>{date}</span>
+                              {sortByDate === date && (
+                                <span className="text-green-400 text-lg">↓</span>
+                              )}
+                              {formatNumberWithSuffix(dateTotal)}
+                            </div>
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="bg-black divide-y divide-gray-800">
