@@ -7,7 +7,10 @@ import {
   TopCount,
 } from "../interface/types";
 import { getRandomSoftColor } from "../utils/colors";
-import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
+import {
+  formatNumberWithSuffix,
+  formatNumberForTooltip,
+} from "../utils/number";
 
 interface HoldingsChartProps {
   data: RankingDataPoint[];

@@ -7,7 +7,10 @@ import {
   TimeDimension,
 } from "../interface/types";
 import { chartColors, getWeekColor } from "../utils/colors";
-import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
+import {
+  formatNumberWithSuffix,
+  formatNumberForTooltip,
+} from "../utils/number";
 
 interface LockUnlockChartProps {
   data: LockUnlockChartDataPoint[];

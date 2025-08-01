@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { ConversionChartDataPoint, TimeDimension } from "../interface/types";
 import { chartColors } from "../utils/colors";
-import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
+import {
+  formatNumberWithSuffix,
+  formatNumberForTooltip,
+} from "../utils/number";
 
 interface ConversionChartProps {
   data: ConversionChartDataPoint[];

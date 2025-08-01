@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { ChartDataPoint, TimeDimension } from "../interface/types";
 import { chartColors } from "../utils/colors";
-import { formatNumberWithSuffix, formatNumberForTooltip } from "../utils/number";
+import {
+  formatNumberWithSuffix,
+  formatNumberForTooltip,
+} from "../utils/number";
 
 interface TokenHoldersChartProps {
   data: ChartDataPoint[];

@@ -141,13 +141,13 @@ const RankingChart: React.FC<RankingChartProps> = ({
             if (param.value !== null) {
               // 找到对应的用户数据来获取balance
               const timeIndex = timePoints.indexOf(params[0].axisValue);
-              const userRanking = data[timeIndex]?.userRankings.find(
-                (u) => u.account_id.includes(param.seriesName.split('...')[0])
+              const userRanking = data[timeIndex]?.userRankings.find((u) =>
+                u.account_id.includes(param.seriesName.split("...")[0])
               );
-              
+
               const balance = userRanking?.balance || 0;
               const balanceFormatted = formatNumberForTooltip(balance);
-              
+
               result += `<div style="margin: 4px 0;">
                 <span style="display: inline-block; width: 12px; height: 12px; background: ${param.color}; margin-right: 8px; border-radius: 2px;"></span>
                 <span style="font-weight: 500;">${param.seriesName}:</span> 

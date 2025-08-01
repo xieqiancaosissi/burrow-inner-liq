@@ -13,7 +13,10 @@ export function format_usd(n: string | number) {
 }
 
 // 新增：通用数字格式化函数，使用K、M、B表示
-export const formatNumberWithSuffix = (value: number, decimals: number = 2): string => {
+export const formatNumberWithSuffix = (
+  value: number,
+  decimals: number = 2
+): string => {
   if (value >= 1e9) {
     return (value / 1e9).toFixed(decimals) + "B";
   } else if (value >= 1e6) {
