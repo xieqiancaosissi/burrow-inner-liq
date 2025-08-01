@@ -146,8 +146,8 @@ const HomePage: React.FC = () => {
         dateGroups[date].sort((a, b) => a.rank - b.rank);
       });
 
-      // 按时间排序
-      dates.sort();
+      // 按时间排序 - 倒序，最新的在前面
+      dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
       setAvailableDates(dates);
 
       // 构建用户排名数据
@@ -173,7 +173,7 @@ const HomePage: React.FC = () => {
       const userRankArray = Object.values(userData);
       setUserRankData(userRankArray);
 
-      // 设置默认排序日期为第一个日期
+      // 设置默认排序日期为第一个日期（最新的日期）
       if (dates.length > 0 && !sortByDate) {
         setSortByDate(dates[0]);
       }
@@ -253,6 +253,39 @@ const HomePage: React.FC = () => {
       const bRank = b.ranks[sortByDate]?.rank || 999999;
       return aRank - bRank;
     });
+  };
+
+  // 计算持仓变化
+  const getBalanceChange = (currentBalance: string, todayBalance: string, tokenId: string) => {
+    const metadata = tokenMetadata[tokenId];
+    let currentNum = 0;
+    let todayNum = 0;
+    
+    if (metadata && metadata.decimals !== undefined) {
+      currentNum = parseFloat(toReadableNumber(metadata.decimals, currentBalance));
+      todayNum = parseFloat(toReadableNumber(metadata.decimals, todayBalance));
+    } else {
+      currentNum = parseFloat(currentBalance);
+      todayNum = parseFloat(todayBalance);
+    }
+    
+    return {
+      change: currentNum - todayNum,
+      percentage: todayNum > 0 ? ((currentNum - todayNum) / todayNum) * 100 : 0
+    };
+  };
+
+  // 格式化变化显示
+  const formatChange = (change: number) => {
+    const absChange = Math.abs(change);
+    if (absChange >= 1e9) {
+      return (absChange / 1e9).toFixed(2) + "B";
+    } else if (absChange >= 1e6) {
+      return (absChange / 1e6).toFixed(2) + "M";
+    } else if (absChange >= 1e3) {
+      return (absChange / 1e3).toFixed(2) + "K";
+    }
+    return absChange.toFixed(2);
   };
 
   const filteredDates = getFilteredDates();
@@ -370,17 +403,19 @@ const HomePage: React.FC = () => {
               </h3>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-10 min-w-[200px]">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider sticky left-0 z-10 bg-black min-w-[200px]">
                       User
                     </th>
-                    {filteredDates.map((date) => (
+                    {filteredDates.map((date, index) => (
                       <th
                         key={date}
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer transition-colors min-w-[200px]"
+                        className={`px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer transition-colors ${
+                          index === 0 ? 'sticky left-[200px] z-10 bg-black min-w-[150px]' : 'min-w-[200px]'
+                        }`}
                         onClick={() => handleDateSort(date)}
                       >
                         <div className="flex items-center gap-2">
@@ -394,50 +429,89 @@ const HomePage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-black divide-y divide-gray-800">
-                  {sortedUserData.slice(0, 100).map((user, index) => (
-                    <tr
-                      key={user.account_id}
-                      className="hover:bg-[#25252C] hover:border-opacity-70 transition-colors min-w-[200px]"
-                    >
-                      <td className="px-6 py-2 whitespace-nowrap text-sm">
-                        <span className="font-mono text-xs">
-                          {user.account_id.length > 30
-                            ? `${user.account_id.substring(
-                                0,
-                                20
-                              )}...${user.account_id.substring(
-                                user.account_id.length - 10
-                              )}`
-                            : user.account_id}
-                        </span>
-                      </td>
-                      {filteredDates.map((date) => {
-                        const rankData = user.ranks[date];
-                        return (
-                          <td
-                            key={date}
-                            className="px-6 py-2 whitespace-nowrap text-sm min-w-[200px]"
-                          >
-                            {rankData ? (
-                              <div className="space-y-1">
-                                <div className="text-green-400 font-bold text-lg">
-                                  #{rankData.rank}
+                  {sortedUserData.slice(0, 100).map((user, index) => {
+                    const todayDate = filteredDates[0]; // 最新日期作为今天
+                    const todayData = user.ranks[todayDate];
+                    
+                    return (
+                      <tr
+                        key={user.account_id}
+                        className="hover:bg-[#25252C] hover:border-opacity-70 transition-colors min-w-[200px]"
+                      >
+                        <td className="px-6 py-2 whitespace-nowrap text-sm sticky left-0 bg-black z-10 min-w-[200px]">
+                          <span className="font-mono text-xs">
+                            {user.account_id.length > 30
+                              ? `${user.account_id.substring(
+                                  0,
+                                  20
+                                )}...${user.account_id.substring(
+                                  user.account_id.length - 10
+                                )}`
+                              : user.account_id}
+                          </span>
+                        </td>
+                        {filteredDates.map((date, dateIndex) => {
+                          const rankData = user.ranks[date];
+                          const isToday = date === todayDate;
+                          
+                          return (
+                            <td
+                              key={date}
+                              className={`px-6 py-2 whitespace-nowrap text-sm ${
+                                dateIndex === 0 ? 'sticky left-[200px] bg-black z-10 min-w-[150px]' : 'min-w-[200px]'
+                              }`}
+                            >
+                              {rankData ? (
+                                <div className="space-y-1 text-left">
+                                  <div className="text-white font-bold text-lg">
+                                    #{rankData.rank}
+                                  </div>
+                                  <div className="text-gray-400 text-xs font-mono flex items-center gap-1">
+                                    {formatBalance(
+                                      rankData.balance,
+                                      selectedToken.id
+                                    )}
+                                    
+                                    {!isToday && todayData && (
+                                      <div className="text-xs">
+                                        {(() => {
+                                          const change = getBalanceChange(rankData.balance, todayData.balance, selectedToken.id);
+                                          if (change.change > 0) {
+                                            return (
+                                              <div className="text-red-400 flex items-center gap-1">
+                                                <span>↓</span>
+                                                <span>+{formatChange(change.change)}</span>
+                                              </div>
+                                            );
+                                          } else if (change.change < 0) {
+                                            return (
+                                              <div className="text-green-400 flex items-center gap-1">
+                                                <span>↑</span>
+                                                <span>-{formatChange(change.change)}</span>
+                                              </div>
+                                            );
+                                          } else {
+                                            return (
+                                              <div className="text-gray-400 flex items-center gap-1">
+                                                <span>→</span>
+                                                <span>0</span>
+                                              </div>
+                                            );
+                                          }
+                                        })()}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-white text-xs font-mono">
-                                  {formatBalance(
-                                    rankData.balance,
-                                    selectedToken.id
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-gray-600">-</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                              ) : (
+                                <span className="text-gray-600">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
