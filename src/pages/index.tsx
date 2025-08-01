@@ -76,9 +76,12 @@ const HomePage: React.FC = () => {
   const fetchAllTokenHolders = async () => {
     setLoading(true);
     try {
+      // 根据选择的Time Period计算number参数
+      const numberParam = selectedPeriod;
+      
       // 先获取第一页来确定总页数
       const firstPageResponse = await fetch(
-        `https://mainnet-indexer.ref-finance.com/token_holders?number=999999999&page_number=1&page_size=100`
+        `https://mainnet-indexer.ref-finance.com/token_holders?number=${numberParam}&page_number=1&page_size=100`
       );
       const firstPageData: ApiResponse = await firstPageResponse.json();
       const totalPages = firstPageData.total_page;
@@ -88,7 +91,7 @@ const HomePage: React.FC = () => {
       for (let page = 1; page <= totalPages; page++) {
         pagePromises.push(
           fetch(
-            `https://mainnet-indexer.ref-finance.com/token_holders?number=999999999&page_number=${page}&page_size=100`
+            `https://mainnet-indexer.ref-finance.com/token_holders?number=${numberParam}&page_number=${page}&page_size=100`
           ).then((res) => res.json())
         );
       }
@@ -184,6 +187,13 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     fetchAllTokenHolders();
   }, []);
+
+  // 当Time Period改变时重新获取数据
+  useEffect(() => {
+    if (allTokenHolders.length > 0) {
+      fetchAllTokenHolders();
+    }
+  }, [selectedPeriod]);
 
   const handleTokenChange = (token: TokenMetadata) => {
     setSelectedToken(token);
