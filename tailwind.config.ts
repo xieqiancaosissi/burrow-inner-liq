@@ -45,8 +45,9 @@ const config: Config = {
         purple: {
           50: "#C0C4E9",
         },
-        grey:{
+        gray:{
           50:'#73818b',
+          800:"#16161B",
         },
         green:{
           50:"#d2ff3a",
