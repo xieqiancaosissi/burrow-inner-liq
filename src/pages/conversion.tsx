@@ -2,17 +2,20 @@ import React, { useState, useEffect } from "react";
 import { ftGetTokenMetadata } from "../services/near";
 import { toReadableNumber } from "../utils/number";
 
-interface TokenHolder {
+interface ConversionRecord {
   token_id: string;
   account_id: string;
   balance: string;
   index_number: number;
   rank: number;
+  target_amount: string;
+  locking_duration: number;
+  type: string;
   timestamp: number;
 }
 
 interface ApiResponse {
-  record_list: TokenHolder[];
+  record_list: ConversionRecord[];
   page_number: number;
   page_size: number;
   total_page: number;
@@ -25,19 +28,22 @@ interface TokenMetadata {
   decimals?: number;
 }
 
-interface UserRankData {
+interface UserConversionData {
   account_id: string;
-  ranks: {
-    [date: string]: { rank: number; balance: string; timestamp: number };
+  conversions: {
+    [date: string]: {
+      rank: number;
+      target_amount: string;
+      timestamp: number;
+      locking_duration: number;
+      type: string;
+    };
   };
 }
 
 const TOKENS: TokenMetadata[] = [
   { id: "token.v2.ref-finance.near", name: "Ref" },
   { id: "token.burrow.near", name: "Brrr" },
-  { id: "xtoken.ref-finance.near", name: "xRef" },
-  { id: "token.rhealab.near", name: "Rhea" },
-  { id: "xtoken.rhealab.near", name: "xRhea" },
 ];
 
 const TIME_PERIODS = [
@@ -47,16 +53,35 @@ const TIME_PERIODS = [
   { label: "4 Weeks", days: 28 },
 ];
 
-const HomePage: React.FC = () => {
+const LOCKING_DURATIONS = [
+  { label: "0 Week", value: 0 },
+  { label: "5 Weeks", value: 5 },
+  { label: "10 Weeks", value: 10 },
+  { label: "20 Weeks", value: 20 },
+];
+
+const CONVERSION_TYPES = [
+  { label: "Lock", value: "Lock" },
+  { label: "NoLock", value: "unLock" },
+];
+
+const ConversionPage: React.FC = () => {
   const [selectedToken, setSelectedToken] = useState<TokenMetadata>(TOKENS[0]);
-  const [allTokenHolders, setAllTokenHolders] = useState<TokenHolder[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<number>(7);
+  const [selectedLockingDuration, setSelectedLockingDuration] =
+    useState<number>(5);
+  const [selectedType, setSelectedType] = useState<string>("Lock");
+  const [allConversionRecords, setAllConversionRecords] = useState<
+    ConversionRecord[]
+  >([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [tokenMetadata, setTokenMetadata] = useState<{ [key: string]: any }>(
     {}
   );
-  const [selectedPeriod, setSelectedPeriod] = useState<number>(7);
   const [sortByDate, setSortByDate] = useState<string>("");
-  const [userRankData, setUserRankData] = useState<UserRankData[]>([]);
+  const [userConversionData, setUserConversionData] = useState<
+    UserConversionData[]
+  >([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
 
   // 获取token metadata
@@ -72,8 +97,8 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // 获取所有页面的数据
-  const fetchAllTokenHolders = async () => {
+  // 获取所有页面的转换数据
+  const fetchAllConversionRecords = async () => {
     setLoading(true);
     try {
       // 根据选择的Time Period计算number参数
@@ -81,7 +106,7 @@ const HomePage: React.FC = () => {
 
       // 先获取第一页来确定总页数
       const firstPageResponse = await fetch(
-        `https://mainnet-indexer.ref-finance.com/token_holders?number=${numberParam}&page_number=1&page_size=100`
+        `https://mainnet-indexer.ref-finance.com/conversion_token_data?number=${numberParam}&page_number=1&page_size=100`
       );
       const firstPageData: ApiResponse = await firstPageResponse.json();
       const totalPages = firstPageData.total_page;
@@ -91,7 +116,7 @@ const HomePage: React.FC = () => {
       for (let page = 1; page <= totalPages; page++) {
         pagePromises.push(
           fetch(
-            `https://mainnet-indexer.ref-finance.com/token_holders?number=${numberParam}&page_number=${page}&page_size=100`
+            `https://mainnet-indexer.ref-finance.com/conversion_token_data?number=${numberParam}&page_number=${page}&page_size=100`
           ).then((res) => res.json())
         );
       }
@@ -99,19 +124,19 @@ const HomePage: React.FC = () => {
       const allPagesData: ApiResponse[] = await Promise.all(pagePromises);
 
       // 整合所有数据
-      const allData: TokenHolder[] = [];
+      const allData: ConversionRecord[] = [];
       allPagesData.forEach((pageData) => {
         allData.push(...pageData.record_list);
       });
 
-      setAllTokenHolders(allData);
+      setAllConversionRecords(allData);
 
       // 获取所有token的metadata
       TOKENS.forEach((token) => {
         fetchTokenMetadata(token.id);
       });
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error("Failed to fetch conversion data:", error);
     } finally {
       setLoading(false);
     }
@@ -119,17 +144,22 @@ const HomePage: React.FC = () => {
 
   // 处理数据，按用户分组并按时间组织
   useEffect(() => {
-    if (allTokenHolders.length > 0) {
-      const filtered = allTokenHolders.filter(
-        (holder) => holder.token_id === selectedToken.id
-      );
+    if (allConversionRecords.length > 0) {
+      // 根据筛选条件过滤数据
+      const filtered = allConversionRecords.filter((record) => {
+        const tokenMatch = record.token_id === selectedToken.id;
+        const durationMatch =
+          record.locking_duration === selectedLockingDuration;
+        const typeMatch = record.type === selectedType;
+        return tokenMatch && durationMatch && typeMatch;
+      });
 
       // 按时间分组
-      const dateGroups: { [key: string]: TokenHolder[] } = {};
+      const dateGroups: { [key: string]: ConversionRecord[] } = {};
       const dates: string[] = [];
 
-      filtered.forEach((holder) => {
-        const date = new Date(holder.timestamp * 1000).toLocaleDateString(
+      filtered.forEach((record) => {
+        const date = new Date(record.timestamp * 1000).toLocaleDateString(
           "en-US",
           {
             year: "numeric",
@@ -141,7 +171,7 @@ const HomePage: React.FC = () => {
           dateGroups[date] = [];
           dates.push(date);
         }
-        dateGroups[date].push(holder);
+        dateGroups[date].push(record);
       });
 
       // 按排名排序每个日期的数据
@@ -153,45 +183,53 @@ const HomePage: React.FC = () => {
       dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
       setAvailableDates(dates);
 
-      // 构建用户排名数据
-      const userData: { [key: string]: UserRankData } = {};
+      // 构建用户转换数据
+      const userData: { [key: string]: UserConversionData } = {};
 
       dates.forEach((date) => {
         const top100 = dateGroups[date].slice(0, 100);
-        top100.forEach((holder) => {
-          if (!userData[holder.account_id]) {
-            userData[holder.account_id] = {
-              account_id: holder.account_id,
-              ranks: {},
+        top100.forEach((record) => {
+          if (!userData[record.account_id]) {
+            userData[record.account_id] = {
+              account_id: record.account_id,
+              conversions: {},
             };
           }
-          userData[holder.account_id].ranks[date] = {
-            rank: holder.rank,
-            balance: holder.balance,
-            timestamp: holder.timestamp,
+          userData[record.account_id].conversions[date] = {
+            rank: record.rank,
+            target_amount: record.target_amount,
+            timestamp: record.timestamp,
+            locking_duration: record.locking_duration,
+            type: record.type,
           };
         });
       });
 
-      const userRankArray = Object.values(userData);
-      setUserRankData(userRankArray);
+      const userConversionArray = Object.values(userData);
+      setUserConversionData(userConversionArray);
 
       // 设置默认排序日期为第一个日期（最新的日期）
       if (dates.length > 0 && !sortByDate) {
         setSortByDate(dates[0]);
       }
     }
-  }, [selectedToken, allTokenHolders, sortByDate]);
+  }, [
+    selectedToken,
+    selectedLockingDuration,
+    selectedType,
+    allConversionRecords,
+    sortByDate,
+  ]);
 
   // 初始加载所有数据
   useEffect(() => {
-    fetchAllTokenHolders();
+    fetchAllConversionRecords();
   }, []);
 
   // 当Time Period改变时重新获取数据
   useEffect(() => {
-    if (allTokenHolders.length > 0) {
-      fetchAllTokenHolders();
+    if (allConversionRecords.length > 0) {
+      fetchAllConversionRecords();
     }
   }, [selectedPeriod]);
 
@@ -204,20 +242,30 @@ const HomePage: React.FC = () => {
     setSelectedPeriod(days);
   };
 
+  const handleLockingDurationChange = (duration: number) => {
+    setSelectedLockingDuration(duration);
+    setSortByDate("");
+  };
+
+  const handleTypeChange = (type: string) => {
+    setSelectedType(type);
+    setSortByDate("");
+  };
+
   const handleDateSort = (date: string) => {
     setSortByDate(date);
   };
 
-  const formatBalance = (balance: string, tokenId: string) => {
+  const formatTargetAmount = (targetAmount: string, tokenId: string) => {
     const metadata = tokenMetadata[tokenId];
     if (metadata && metadata.decimals !== undefined) {
-      const readableNumber = toReadableNumber(metadata.decimals, balance);
+      const readableNumber = toReadableNumber(metadata.decimals, targetAmount);
       const num = parseFloat(readableNumber);
       return formatNumberWithSuffix(num);
     }
 
     // Fallback to original formatting
-    const num = parseFloat(balance);
+    const num = parseFloat(targetAmount);
     return formatNumberWithSuffix(num);
   };
 
@@ -230,15 +278,6 @@ const HomePage: React.FC = () => {
       return (num / 1e3).toFixed(2) + "K";
     }
     return num.toFixed(2);
-  };
-
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    });
   };
 
   // 获取筛选后的日期
@@ -256,19 +295,66 @@ const HomePage: React.FC = () => {
 
   // 获取排序后的用户数据
   const getSortedUserData = () => {
-    if (!sortByDate || userRankData.length === 0) return userRankData;
+    if (!sortByDate || userConversionData.length === 0)
+      return userConversionData;
 
-    return [...userRankData].sort((a, b) => {
-      const aRank = a.ranks[sortByDate]?.rank || 999999;
-      const bRank = b.ranks[sortByDate]?.rank || 999999;
+    return [...userConversionData].sort((a, b) => {
+      const aRank = a.conversions[sortByDate]?.rank || 999999;
+      const bRank = b.conversions[sortByDate]?.rank || 999999;
       return aRank - bRank;
     });
   };
 
-  // 计算持仓变化
-  const getBalanceChange = (
-    currentBalance: string,
-    todayBalance: string,
+  // 计算当前token的top100总target_amount
+  const getTop100TotalTargetAmount = () => {
+    if (!sortByDate || userConversionData.length === 0) return 0;
+
+    let total = 0;
+    getSortedUserData()
+      .slice(0, 100)
+      .forEach((user) => {
+        const conversionData = user.conversions[sortByDate];
+        if (conversionData) {
+          const metadata = tokenMetadata[selectedToken.id];
+          if (metadata && metadata.decimals !== undefined) {
+            const readableNumber = toReadableNumber(
+              metadata.decimals,
+              conversionData.target_amount
+            );
+            total += parseFloat(readableNumber);
+          } else {
+            total += parseFloat(conversionData.target_amount);
+          }
+        }
+      });
+    return total;
+  };
+
+  // 计算每个日期的总target_amount
+  const getDateTotalTargetAmount = (date: string) => {
+    let total = 0;
+    userConversionData.forEach((user) => {
+      const conversionData = user.conversions[date];
+      if (conversionData) {
+        const metadata = tokenMetadata[selectedToken.id];
+        if (metadata && metadata.decimals !== undefined) {
+          const readableNumber = toReadableNumber(
+            metadata.decimals,
+            conversionData.target_amount
+          );
+          total += parseFloat(readableNumber);
+        } else {
+          total += parseFloat(conversionData.target_amount);
+        }
+      }
+    });
+    return total;
+  };
+
+  // 计算target_amount变化
+  const getTargetAmountChange = (
+    currentAmount: string,
+    todayAmount: string,
     tokenId: string
   ) => {
     const metadata = tokenMetadata[tokenId];
@@ -277,12 +363,12 @@ const HomePage: React.FC = () => {
 
     if (metadata && metadata.decimals !== undefined) {
       currentNum = parseFloat(
-        toReadableNumber(metadata.decimals, currentBalance)
+        toReadableNumber(metadata.decimals, currentAmount)
       );
-      todayNum = parseFloat(toReadableNumber(metadata.decimals, todayBalance));
+      todayNum = parseFloat(toReadableNumber(metadata.decimals, todayAmount));
     } else {
-      currentNum = parseFloat(currentBalance);
-      todayNum = parseFloat(todayBalance);
+      currentNum = parseFloat(currentAmount);
+      todayNum = parseFloat(todayAmount);
     }
 
     return {
@@ -306,68 +392,23 @@ const HomePage: React.FC = () => {
 
   const filteredDates = getFilteredDates();
   const sortedUserData = getSortedUserData();
-
-  // 计算当前token的top100总数量
-  const getTop100TotalBalance = () => {
-    if (!sortByDate || sortedUserData.length === 0) return 0;
-
-    let total = 0;
-    sortedUserData.slice(0, 100).forEach((user) => {
-      const rankData = user.ranks[sortByDate];
-      if (rankData) {
-        const metadata = tokenMetadata[selectedToken.id];
-        if (metadata && metadata.decimals !== undefined) {
-          const readableNumber = toReadableNumber(
-            metadata.decimals,
-            rankData.balance
-          );
-          total += parseFloat(readableNumber);
-        } else {
-          total += parseFloat(rankData.balance);
-        }
-      }
-    });
-    return total;
-  };
-
-  const top100Total = getTop100TotalBalance();
-
-  // 计算每个日期的总数量
-  const getDateTotalBalance = (date: string) => {
-    let total = 0;
-    userRankData.forEach((user) => {
-      const rankData = user.ranks[date];
-      if (rankData) {
-        const metadata = tokenMetadata[selectedToken.id];
-        if (metadata && metadata.decimals !== undefined) {
-          const readableNumber = toReadableNumber(
-            metadata.decimals,
-            rankData.balance
-          );
-          total += parseFloat(readableNumber);
-        } else {
-          total += parseFloat(rankData.balance);
-        }
-      }
-    });
-    return total;
-  };
+  const top100Total = getTop100TotalTargetAmount();
 
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 text-white">
-            Token Holder Rankings
+            Token Conversion Rankings
           </h1>
           <p className="text-gray-400 text-lg">
-            View user rankings across different time periods
+            View conversion rankings across different tokens and locking periods
           </p>
         </div>
 
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-6 mb-6">
           {/* Token Selector */}
-          <div className="mb-6">
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Select Token:
             </label>
@@ -389,7 +430,7 @@ const HomePage: React.FC = () => {
           </div>
 
           {/* Time Period Filter */}
-          <div className="mb-6">
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Time Period:
             </label>
@@ -410,10 +451,54 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
+          {/* Locking Duration Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Locking Duration:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {LOCKING_DURATIONS.map((duration) => (
+                <button
+                  key={duration.value}
+                  onClick={() => handleLockingDurationChange(duration.value)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    selectedLockingDuration === duration.value
+                      ? "bg-[#00F7A5] text-[#14162B] shadow-lg"
+                      : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
+                  }`}
+                >
+                  {duration.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Type Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Type:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CONVERSION_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => handleTypeChange(type.value)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    selectedType === type.value
+                      ? "bg-[#00F7A5] text-[#14162B] shadow-lg"
+                      : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Refresh Button */}
           <div className="ml-auto">
             <button
-              onClick={fetchAllTokenHolders}
+              onClick={fetchAllConversionRecords}
               disabled={loading}
               className="px-8 py-3 bg-[#00F7A5] text-[#14162B] rounded-lg hover:bg-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-lg"
             >
@@ -426,7 +511,9 @@ const HomePage: React.FC = () => {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-            <p className="mt-4 text-gray-400 text-lg">Loading all data...</p>
+            <p className="mt-4 text-gray-400 text-lg">
+              Loading conversion data...
+            </p>
           </div>
         )}
 
@@ -435,7 +522,7 @@ const HomePage: React.FC = () => {
           <div className="rounded-xl overflow-hidden border border-[#303037]">
             <div className="px-6 py-4 border-b border-[#303037]">
               <h3 className="text-xl font-semibold text-white">
-                {selectedToken.name} Total -{" "}
+                {selectedToken.name} Total Target Amount -{" "}
                 {formatNumberWithSuffix(top100Total)} ({sortByDate})
                 <span className="text-sm text-gray-400 ml-4">
                   Showing {sortedUserData.length} users across{" "}
@@ -452,7 +539,7 @@ const HomePage: React.FC = () => {
                       User
                     </th>
                     {filteredDates.map((date, index) => {
-                      const dateTotal = getDateTotalBalance(date);
+                      const dateTotal = getDateTotalTargetAmount(date);
                       return (
                         <th
                           key={date}
@@ -482,7 +569,7 @@ const HomePage: React.FC = () => {
                 <tbody className="bg-black divide-y divide-gray-800">
                   {sortedUserData.slice(0, 100).map((user, index) => {
                     const todayDate = filteredDates[0]; // 最新日期作为今天
-                    const todayData = user.ranks[todayDate];
+                    const todayData = user.conversions[todayDate];
 
                     return (
                       <tr
@@ -502,7 +589,7 @@ const HomePage: React.FC = () => {
                           </span>
                         </td>
                         {filteredDates.map((date, dateIndex) => {
-                          const rankData = user.ranks[date];
+                          const conversionData = user.conversions[date];
                           const isToday = date === todayDate;
 
                           return (
@@ -514,23 +601,23 @@ const HomePage: React.FC = () => {
                                   : "min-w-[200px]"
                               }`}
                             >
-                              {rankData ? (
+                              {conversionData ? (
                                 <div className="space-y-1 text-left">
                                   <div className="text-white font-bold text-lg">
-                                    #{rankData.rank}
+                                    #{conversionData.rank}
                                   </div>
                                   <div className="text-gray-400 text-xs font-mono flex items-center gap-1">
-                                    {formatBalance(
-                                      rankData.balance,
+                                    {formatTargetAmount(
+                                      conversionData.target_amount,
                                       selectedToken.id
                                     )}
 
                                     {!isToday && todayData && (
                                       <div className="text-xs">
                                         {(() => {
-                                          const change = getBalanceChange(
-                                            rankData.balance,
-                                            todayData.balance,
+                                          const change = getTargetAmountChange(
+                                            conversionData.target_amount,
+                                            todayData.target_amount,
                                             selectedToken.id
                                           );
                                           if (change.change > 0) {
@@ -563,6 +650,10 @@ const HomePage: React.FC = () => {
                                       </div>
                                     )}
                                   </div>
+                                  <div className="text-xs text-gray-500">
+                                    {conversionData.locking_duration}w{" "}
+                                    {conversionData.type}
+                                  </div>
                                 </div>
                               ) : (
                                 <span className="text-gray-600">-</span>
@@ -583,7 +674,9 @@ const HomePage: React.FC = () => {
         {!loading &&
           (sortedUserData.length === 0 || filteredDates.length === 0) && (
             <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">No data available</p>
+              <p className="text-gray-400 text-lg">
+                No conversion data available for selected filters
+              </p>
             </div>
           )}
       </div>
@@ -591,4 +684,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default ConversionPage;
