@@ -354,13 +354,12 @@ const ConversionPage: React.FC = () => {
     });
   };
 
-  // 计算当前token的top100总target_amount
-  const getTop100TotalTargetAmount = () => {
+  // 计算当前token的总target_amount
+  const getTotalTargetAmount = () => {
     if (!sortByDate || userConversionData.length === 0) return 0;
 
     let total = 0;
     getSortedUserData()
-      .slice(0, 100)
       .forEach((user) => {
         const conversionData = user.conversions[sortByDate];
         if (conversionData) {
@@ -441,7 +440,7 @@ const ConversionPage: React.FC = () => {
 
   const filteredDates = getFilteredDates();
   const sortedUserData = getSortedUserData();
-  const top100Total = getTop100TotalTargetAmount();
+  const totalTargetAmount = getTotalTargetAmount();
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -572,7 +571,7 @@ const ConversionPage: React.FC = () => {
             <div className="px-6 py-4 border-b border-[#303037]">
               <h3 className="text-xl font-semibold text-white">
                 {selectedToken.name} Total Target Amount -{" "}
-                {formatNumberWithSuffix(top100Total)} ({sortByDate})
+                {formatNumberWithSuffix(totalTargetAmount)} ({sortByDate})
                 <span className="text-sm text-gray-400 ml-4">
                   Showing {sortedUserData.length} users across{" "}
                   {filteredDates.length} days
@@ -616,7 +615,7 @@ const ConversionPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-black divide-y divide-gray-800">
-                  {sortedUserData.slice(0, 100).map((user, index) => {
+                  {sortedUserData.map((user, index) => {
                     const todayDate = filteredDates[0]; // 最新日期作为今天
                     const todayData = user.conversions[todayDate];
 
