@@ -9,6 +9,10 @@ const {
   explorerUrl,
   REF_FI_CONTRACT_ID,
 } = getConfig();
+
+// 全局metadata缓存
+const globalMetadataCache: { [key: string]: any } = {};
+
 async function connectToNear() {
   const myKeyStore = new keyStores.BrowserLocalStorageKeyStore();
   const connectionConfig = {
@@ -54,13 +58,36 @@ export async function REFContract(contractId: string): Promise<any> {
 }
 
 export async function ftGetTokenMetadata(id: string): Promise<TokenMetadata> {
+  // 检查全局缓存
+  if (globalMetadataCache[id]) {
+    console.log(
+      `Using global cached metadata for ${id}:`,
+      globalMetadataCache[id]
+    );
+    return globalMetadataCache[id];
+  }
+
   if (id === "aurora") {
     id = "eth.bridge.near";
   }
-  const contract = await tokenContract(id);
-  const metadata = await contract.ft_metadata({});
-  return metadata;
+
+  try {
+    const contract = await tokenContract(id);
+    const metadata = await contract.ft_metadata({});
+
+    // 缓存成功的metadata
+    if (metadata && metadata.decimals !== undefined) {
+      globalMetadataCache[id] = metadata;
+      console.log(`Cached metadata for ${id}:`, metadata);
+    }
+
+    return metadata;
+  } catch (error) {
+    console.error(`Failed to fetch metadata for ${id}:`, error);
+    throw error;
+  }
 }
+
 export async function get_pool(pool_id: string): Promise<IPool> {
   const contract = await REFContract(REF_FI_CONTRACT_ID);
   const poolDetail = await contract.get_pool({ pool_id: +pool_id });
