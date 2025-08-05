@@ -46,6 +46,12 @@ const TOKENS: TokenMetadata[] = [
   { id: "token.burrow.near", name: "Brrr" },
 ];
 
+// 硬编码的token metadata作为备用
+const FALLBACK_TOKEN_METADATA: { [key: string]: any } = {
+  "token.v2.ref-finance.near": { decimals: 24 },
+  "token.burrow.near": { decimals: 24 },
+};
+
 const TIME_PERIODS = [
   { label: "1 Week", days: 7 },
   { label: "2 Weeks", days: 14 },
@@ -88,14 +94,34 @@ const ConversionPage: React.FC = () => {
   const fetchTokenMetadata = async (tokenId: string) => {
     try {
       const metadata = await ftGetTokenMetadata(tokenId);
+      console.log(`Successfully fetched metadata for ${tokenId}:`, metadata);
       setTokenMetadata((prev) => ({
         ...prev,
         [tokenId]: metadata,
       }));
     } catch (error) {
       console.error(`Failed to fetch metadata for ${tokenId}:`, error);
+      // 使用备用metadata
+      const fallbackMetadata = FALLBACK_TOKEN_METADATA[tokenId];
+      if (fallbackMetadata) {
+        console.log(`Using fallback metadata for ${tokenId}:`, fallbackMetadata);
+        setTokenMetadata((prev) => ({
+          ...prev,
+          [tokenId]: fallbackMetadata,
+        }));
+      }
     }
   };
+
+  // 初始化时设置备用metadata
+  useEffect(() => {
+    const initialMetadata: { [key: string]: any } = {};
+    TOKENS.forEach((token) => {
+      initialMetadata[token.id] = FALLBACK_TOKEN_METADATA[token.id];
+    });
+    setTokenMetadata(initialMetadata);
+    console.log("Initialized with fallback metadata:", initialMetadata);
+  }, []);
 
   // 获取所有页面的转换数据
   const fetchAllConversionRecords = async () => {
@@ -258,15 +284,38 @@ const ConversionPage: React.FC = () => {
 
   const formatTargetAmount = (targetAmount: string, tokenId: string) => {
     const metadata = tokenMetadata[tokenId];
+    
+    // 添加调试信息
+    console.log(`Formatting target amount for token ${tokenId}:`, {
+      targetAmount,
+      metadata,
+      hasDecimals: metadata?.decimals !== undefined
+    });
+    
     if (metadata && metadata.decimals !== undefined) {
-      const readableNumber = toReadableNumber(metadata.decimals, targetAmount);
-      const num = parseFloat(readableNumber);
-      return formatNumberWithSuffix(num);
+      try {
+        const readableNumber = toReadableNumber(metadata.decimals, targetAmount);
+        const num = parseFloat(readableNumber);
+        console.log(`Converted target amount: ${targetAmount} -> ${readableNumber} -> ${num}`);
+        return formatNumberWithSuffix(num);
+      } catch (error) {
+        console.error(`Error formatting target amount with decimals:`, error);
+      }
     }
 
-    // Fallback to original formatting
-    const num = parseFloat(targetAmount);
-    return formatNumberWithSuffix(num);
+    // Fallback to original formatting with better handling
+    try {
+      const num = parseFloat(targetAmount);
+      if (isNaN(num)) {
+        console.warn(`Invalid target amount value: ${targetAmount}`);
+        return "0";
+      }
+      console.log(`Using fallback formatting: ${targetAmount} -> ${num}`);
+      return formatNumberWithSuffix(num);
+    } catch (error) {
+      console.error(`Error in fallback formatting:`, error);
+      return "0";
+    }
   };
 
   const formatNumberWithSuffix = (num: number): string => {
