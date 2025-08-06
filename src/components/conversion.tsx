@@ -189,8 +189,8 @@ const ConversionPage: React.FC = () => {
       const userData: { [key: string]: UserConversionData } = {};
 
       dates.forEach((date) => {
-        const top100 = dateGroups[date].slice(0, 100);
-        top100.forEach((record) => {
+        // 移除100条限制，展示所有数据
+        dateGroups[date].forEach((record) => {
           if (!userData[record.account_id]) {
             userData[record.account_id] = {
               account_id: record.account_id,
