@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Holder from "../components/holder";
 import Conversion from "../components/conversion";
+import Airdrop from "../components/airdrop";
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("holder");
@@ -8,6 +9,7 @@ const HomePage: React.FC = () => {
   const tabs = [
     { id: "holder", name: "Holder", component: <Holder /> },
     { id: "conversion", name: "Conversion", component: <Conversion /> },
+    { id: "airdrop", name: "Airdrop", component: <Airdrop /> },
   ];
 
   return (
