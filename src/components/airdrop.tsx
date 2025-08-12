@@ -34,7 +34,7 @@ const AirdropPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalSize, setTotalSize] = useState<number>(0);
-  const [pageSize] = useState<number>(30);
+  const [pageSize] = useState<number>(50);
   const [tokenMetadata, setTokenMetadata] = useState<{ [key: string]: any }>(
     {}
   );
@@ -106,6 +106,7 @@ const AirdropPage: React.FC = () => {
 
   // Format number with suffix
   const formatNumberWithSuffix = (num: number): string => {
+    if (num === 0) return "-";
     if (num >= 1e9) {
       return (num / 1e9).toFixed(2) + "B";
     } else if (num >= 1e6) {
@@ -263,32 +264,68 @@ const AirdropPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-[#FAFF00] font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.airdrop_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.airdrop_balance)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-[#00F7A5] font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.rhea_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.rhea_balance)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-[#A1FFE0] font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.stake_rhea_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.stake_rhea_balance)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-purple-400 font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.lp_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.lp_balance)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-[#9EFF00] font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.lock_boost_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.lock_boost_balance)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm min-w-[150px]">
-                        <span className="text-[#FF5F2A] font-medium">
+                        <span
+                          className={`font-medium ${
+                            parseFloat(record.lending_balance) > 0
+                              ? "text-[#00F7A5]"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {formatBalance(record.lending_balance)}
                         </span>
                       </td>
@@ -311,7 +348,7 @@ const AirdropPage: React.FC = () => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-[#25252C] text-white rounded-lg hover:bg-[#303037] disabled:opacity-50 disabled:cursor-not-allowed border border-[#303037]"
+              className="text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -333,7 +370,7 @@ const AirdropPage: React.FC = () => {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                    className={`w-8 h-8 rounded-lg font-medium transition-colors ${
                       currentPage === pageNum
                         ? "bg-[#00F7A5] text-[#14162B] shadow-lg"
                         : "bg-[#25252C] text-gray-300 hover:bg-[#303037] border border-[#303037]"
@@ -348,7 +385,7 @@ const AirdropPage: React.FC = () => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-[#25252C] text-white rounded-lg hover:bg-[#303037] disabled:opacity-50 disabled:cursor-not-allowed border border-[#303037]"
+              className="text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
