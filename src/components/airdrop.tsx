@@ -34,7 +34,7 @@ const AirdropPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalSize, setTotalSize] = useState<number>(0);
-  const [pageSize] = useState<number>(20);
+  const [pageSize] = useState<number>(30);
   const [tokenMetadata, setTokenMetadata] = useState<{ [key: string]: any }>(
     {}
   );
