@@ -58,7 +58,7 @@ const AirdropPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://mainnet-indexer.ref-finance.com/rhea_token_data?page_number=${pageNumber}&page_size=${pageSize}`
+        `https://api.ref.finance/rhea_token_data?page_number=${pageNumber}&page_size=${pageSize}`
       );
       const data: ApiResponse = await response.json();
 
