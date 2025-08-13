@@ -63,6 +63,10 @@ const AirdropPage: React.FC = () => {
   const [userAirdropData, setUserAirdropData] = useState<UserAirdropData[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [totalAirdropAmount, setTotalAirdropAmount] = useState<string>("0");
+  // 添加排序状态
+  const [airdropSortOrder, setAirdropSortOrder] = useState<"asc" | "desc">(
+    "desc"
+  );
 
   // Fetch token metadata
   const fetchTokenMetadata = async (tokenId: string) => {
@@ -295,6 +299,43 @@ const AirdropPage: React.FC = () => {
     }
   }, [allAirdropRecords, tokenMetadata]);
 
+  // 排序函数
+  const sortUserAirdropData = (
+    data: UserAirdropData[],
+    order: "asc" | "desc"
+  ) => {
+    return [...data].sort((a, b) => {
+      const airdropA = parseFloat(
+        toReadableNumber(
+          tokenMetadata["token.rhealab.near"]?.decimals || 18,
+          a.airdrop_balance || "0"
+        )
+      );
+      const airdropB = parseFloat(
+        toReadableNumber(
+          tokenMetadata["token.rhealab.near"]?.decimals || 18,
+          b.airdrop_balance || "0"
+        )
+      );
+
+      if (order === "asc") {
+        return airdropA - airdropB; // 正序：从小到大
+      } else {
+        return airdropB - airdropA; // 倒序：从大到小
+      }
+    });
+  };
+
+  // 处理排序变化
+  const handleAirdropSort = () => {
+    const newOrder = airdropSortOrder === "asc" ? "desc" : "asc";
+    setAirdropSortOrder(newOrder);
+
+    // 重新排序数据
+    const sortedData = sortUserAirdropData(userAirdropData, newOrder);
+    setUserAirdropData(sortedData);
+  };
+
   // Format balance using metadata
   const formatBalance = (
     balance: string,
@@ -396,6 +437,15 @@ const AirdropPage: React.FC = () => {
             <div className="text-gray-400 text-sm mb-1">
               Total Airdrop Amount
             </div>
+            <div className="text-2xl font-bold text-[#00F7A5]">32.43M</div>
+          </div>
+
+          {/* Claimed Airdrop  */}
+
+          <div className="">
+            <div className="text-gray-400 text-sm mb-1">
+              Claimed Airdrop Amount
+            </div>
             <div className="text-2xl font-bold text-[#00F7A5]">
               {(() => {
                 const num = parseFloat(totalAirdropAmount);
@@ -444,7 +494,33 @@ const AirdropPage: React.FC = () => {
                       User ID
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 tracking-wider sticky left-[200px] z-30 bg-[#1A1A1F] min-w-[160px]">
-                      Airdrop
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+                        onClick={handleAirdropSort}
+                      >
+                        <span>Airdrop</span>
+                        <div className="flex flex-col text-[10px]">
+                          <span
+                            className={`${
+                              airdropSortOrder === "asc"
+                                ? "text-[#00F7A5]"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            ▲
+                          </span>
+                          <span
+                            className={`${
+                              airdropSortOrder === "desc"
+                                ? "text-[#00F7A5]"
+                                : "text-gray-500"
+                            }`}
+                            style={{ marginTop: "-4px" }}
+                          >
+                            ▼
+                          </span>
+                        </div>
+                      </div>
                     </th>
                     {availableDates.map((date, index) => (
                       <th
