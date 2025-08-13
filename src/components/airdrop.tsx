@@ -245,12 +245,16 @@ const AirdropPage: React.FC = () => {
       });
 
       const userDataArray = Object.values(userData);
-      setUserAirdropData(userDataArray);
+      
+      // 数据加载完成后立即应用排序
+      const sortedData = sortUserAirdropData(userDataArray, airdropSortOrder);
+      setUserAirdropData(sortedData);
+      
       if (userDataArray.length > 0) {
         console.log("First user complete data:", userDataArray[0]);
       }
     }
-  }, [allAirdropRecords, tokenMetadata]);
+  }, [allAirdropRecords, tokenMetadata, airdropSortOrder]);
 
   // 单独计算 Total Airdrop Amount
   useEffect(() => {
