@@ -83,7 +83,7 @@ const HolderPage: React.FC = () => {
 
       // 先获取第一页来确定总页数
       const firstPageResponse = await fetch(
-        `https://api.ref.finance/token_holders?number=${numberParam}&page_number=1&page_size=100`
+        `https://api.ref.finance/token_holders?number=${numberParam}&page_number=1&page_size=1000`
       );
       const firstPageData: ApiResponse = await firstPageResponse.json();
       const totalPages = firstPageData.total_page;
@@ -93,7 +93,7 @@ const HolderPage: React.FC = () => {
       for (let page = 1; page <= totalPages; page++) {
         pagePromises.push(
           fetch(
-            `https://api.ref.finance/token_holders?number=${numberParam}&page_number=${page}&page_size=100`
+            `https://api.ref.finance/token_holders?number=${numberParam}&page_number=${page}&page_size=1000`
           ).then((res) => res.json())
         );
       }
