@@ -87,12 +87,23 @@ const AirdropPage: React.FC = () => {
     setLoading(true);
     try {
       let allRecords: AirdropRecord[] = [];
+
+      // 根据选择的时间周期计算天数
+      const daysToFetch = selectedPeriod;
+
+      // 先请求第一页，查看总页数
+      const firstPageResponse = await fetch(
+        `https://api.ref.finance/rhea_token_data?number=${daysToFetch}&page_number=1&page_size=1000`
+      );
+      const firstPageData: ApiResponse = await firstPageResponse.json();
+
+      // 遍历所有页面
       let currentPage = 1;
       let hasMorePages = true;
 
       while (hasMorePages) {
         const response = await fetch(
-          `https://api.ref.finance/rhea_token_data?page_number=${currentPage}&page_size=1000`
+          `https://api.ref.finance/rhea_token_data?number=${daysToFetch}&page_number=${currentPage}&page_size=1000`
         );
         const data: ApiResponse = await response.json();
 
@@ -143,11 +154,6 @@ const AirdropPage: React.FC = () => {
       dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
       setAvailableDates(dates);
 
-      console.log("Date groups:", {
-        dates,
-        sampleDateGroup: dateGroups[dates[0]]?.slice(0, 3), // 显示第一个日期的前3条记录
-      });
-
       // Build user airdrop data
       const userData: { [key: string]: UserAirdropData } = {};
 
@@ -163,10 +169,23 @@ const AirdropPage: React.FC = () => {
       });
 
       // Then, populate time series data for each date
+      // 对于每个日期，我们需要找到每个用户在该日期的最新数据
       dates.forEach((date) => {
         const dateRecords = dateGroups[date];
-        dateRecords.forEach((record) => {
-          if (userData[record.account_id]) {
+
+        // 为每个用户找到该日期的最新记录
+        Object.keys(userData).forEach((accountId) => {
+          // 找到该用户在该日期的所有记录，按时间戳排序，取最新的
+          const userRecordsForDate = dateRecords.filter(
+            (record) => record.account_id === accountId
+          );
+
+          if (userRecordsForDate.length > 0) {
+            // 按时间戳排序，取最新的记录
+            const latestRecord = userRecordsForDate.sort(
+              (a, b) => b.timestamp - a.timestamp
+            )[0];
+
             // 使用 toReadableNumber 根据 decimals 转换为可读数字
             const metadata = tokenMetadata["token.rhealab.near"];
             let rheaNum = 0,
@@ -180,39 +199,42 @@ const AirdropPage: React.FC = () => {
                 rheaNum = parseFloat(
                   toReadableNumber(
                     metadata.decimals,
-                    record.rhea_balance || "0"
+                    latestRecord.rhea_balance || "0"
                   )
                 );
                 stakedNum = parseFloat(
                   toReadableNumber(
                     metadata.decimals,
-                    record.stake_rhea_balance || "0"
+                    latestRecord.stake_rhea_balance || "0"
                   )
                 );
                 lpNum = parseFloat(
-                  toReadableNumber(metadata.decimals, record.lp_balance || "0")
+                  toReadableNumber(
+                    metadata.decimals,
+                    latestRecord.lp_balance || "0"
+                  )
                 );
                 lockNum = parseFloat(
                   toReadableNumber(
                     metadata.decimals,
-                    record.lock_boost_balance || "0"
+                    latestRecord.lock_boost_balance || "0"
                   )
                 );
                 lendingNum = parseFloat(
                   toReadableNumber(
                     metadata.decimals,
-                    record.lending_balance || "0"
+                    latestRecord.lending_balance || "0"
                   )
                 );
               } catch (error) {
                 console.error("Error converting to readable number:", error);
               }
             } else {
-              rheaNum = parseFloat(record.rhea_balance || "0");
-              stakedNum = parseFloat(record.stake_rhea_balance || "0");
-              lpNum = parseFloat(record.lp_balance || "0");
-              lockNum = parseFloat(record.lock_boost_balance || "0");
-              lendingNum = parseFloat(record.lending_balance || "0");
+              rheaNum = parseFloat(latestRecord.rhea_balance || "0");
+              stakedNum = parseFloat(latestRecord.stake_rhea_balance || "0");
+              lpNum = parseFloat(latestRecord.lp_balance || "0");
+              lockNum = parseFloat(latestRecord.lock_boost_balance || "0");
+              lendingNum = parseFloat(latestRecord.lending_balance || "0");
             }
             const totalBalance =
               rheaNum + stakedNum + lpNum + lockNum + lendingNum;
@@ -231,25 +253,24 @@ const AirdropPage: React.FC = () => {
                 totalBalance.toFixed(2)
               ).toString();
             }
-            userData[record.account_id].timeSeriesData[date] = {
-              rhea_balance: record.rhea_balance || "0",
-              stake_rhea_balance: record.stake_rhea_balance || "0",
-              lp_balance: record.lp_balance || "0",
-              lock_boost_balance: record.lock_boost_balance || "0",
-              lending_balance: record.lending_balance || "0",
+            userData[accountId].timeSeriesData[date] = {
+              rhea_balance: latestRecord.rhea_balance || "0",
+              stake_rhea_balance: latestRecord.stake_rhea_balance || "0",
+              lp_balance: latestRecord.lp_balance || "0",
+              lock_boost_balance: latestRecord.lock_boost_balance || "0",
+              lending_balance: latestRecord.lending_balance || "0",
               total_balance: formattedTotalBalance,
-              timestamp: record.timestamp,
+              timestamp: latestRecord.timestamp,
             };
           }
         });
       });
 
       const userDataArray = Object.values(userData);
-      
+
       // 数据加载完成后立即应用排序
       const sortedData = sortUserAirdropData(userDataArray, airdropSortOrder);
       setUserAirdropData(sortedData);
-      
       if (userDataArray.length > 0) {
         console.log("First user complete data:", userDataArray[0]);
       }
@@ -263,27 +284,10 @@ const AirdropPage: React.FC = () => {
       let totalAmount = 0;
 
       if (metadata.decimals !== undefined) {
-        // 添加调试信息
-        console.log("Calculating total airdrop amount with metadata:", {
-          decimals: metadata.decimals,
-          totalRecords: allAirdropRecords.length,
-          sampleRecords: allAirdropRecords.slice(0, 3).map((r) => ({
-            account_id: r.account_id,
-            airdrop_balance: r.airdrop_balance,
-            readable: toReadableNumber(
-              metadata.decimals,
-              r.airdrop_balance || "0"
-            ),
-          })),
-        });
-
         totalAmount = allAirdropRecords.reduce((sum, record) => {
           try {
             const readableNumber = parseFloat(
               toReadableNumber(metadata.decimals, record.airdrop_balance || "0")
-            );
-            console.log(
-              `User ${record.account_id}: ${record.airdrop_balance} -> ${readableNumber}`
             );
             return sum + readableNumber;
           } catch (error) {
@@ -293,15 +297,53 @@ const AirdropPage: React.FC = () => {
         }, 0);
       }
 
-      console.log("Final total airdrop amount:", {
-        totalAmount,
-        decimals: metadata.decimals,
-        formatted: formatNumberWithSuffix(totalAmount),
-      });
-
       setTotalAirdropAmount(totalAmount.toString());
     }
   }, [allAirdropRecords, tokenMetadata]);
+
+  // 计算最新一天的 Claimed Airdrop Amount
+  const [claimedAirdropAmount, setClaimedAirdropAmount] = useState<string>("0");
+  
+  useEffect(() => {
+    if (userAirdropData.length > 0 && availableDates.length > 0 && tokenMetadata["token.rhealab.near"]) {
+      const metadata = tokenMetadata["token.rhealab.near"];
+      const latestDate = availableDates[0]; // 最新日期（因为日期已经按降序排序）
+      
+      let latestDateTotal = 0;
+      
+      if (metadata.decimals !== undefined) {
+        userAirdropData.forEach((user) => {
+          const dateData = user.timeSeriesData[latestDate];
+          if (dateData) {
+            try {
+              // 计算该用户在该日期的总余额
+              const rheaNum = parseFloat(
+                toReadableNumber(metadata.decimals, dateData.rhea_balance || "0")
+              );
+              const stakedNum = parseFloat(
+                toReadableNumber(metadata.decimals, dateData.stake_rhea_balance || "0")
+              );
+              const lpNum = parseFloat(
+                toReadableNumber(metadata.decimals, dateData.lp_balance || "0")
+              );
+              const lockNum = parseFloat(
+                toReadableNumber(metadata.decimals, dateData.lock_boost_balance || "0")
+              );
+              const lendingNum = parseFloat(
+                toReadableNumber(metadata.decimals, dateData.lending_balance || "0")
+              );
+              
+              latestDateTotal += rheaNum + stakedNum + lpNum + lockNum + lendingNum;
+            } catch (error) {
+              console.error("Error calculating user balance for latest date:", error);
+            }
+          }
+        });
+      }
+      
+      setClaimedAirdropAmount(latestDateTotal.toString());
+    }
+  }, [userAirdropData, availableDates, tokenMetadata]);
 
   // 排序函数
   const sortUserAirdropData = (
@@ -452,7 +494,7 @@ const AirdropPage: React.FC = () => {
             </div>
             <div className="text-2xl font-bold text-[#00F7A5]">
               {(() => {
-                const num = parseFloat(totalAirdropAmount);
+                const num = parseFloat(claimedAirdropAmount);
                 if (isNaN(num)) return "0";
                 return formatNumberWithSuffix(num);
               })()}
@@ -529,9 +571,7 @@ const AirdropPage: React.FC = () => {
                     {availableDates.map((date, index) => (
                       <th
                         key={date}
-                        className={`px-6 py-4 text-left text-xs font-medium text-gray-300 tracking-wider min-w-[200px] bg-[#1A1A1F] ${
-                          index === 0 ? "sticky left-[350px] z-30" : ""
-                        }`}
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-300 tracking-wider min-w-[200px] bg-[#1A1A1F]"
                       >
                         <div className="font-medium">{date}</div>
                         <div className="text-xs text-gray-400">
@@ -586,14 +626,6 @@ const AirdropPage: React.FC = () => {
                                   }
                                 });
 
-                                console.log(`Date ${date} total calculation:`, {
-                                  date,
-                                  dateTotal,
-                                  userCount: userAirdropData.filter(
-                                    (u) => u.timeSeriesData[date]
-                                  ).length,
-                                });
-
                                 return formatNumberWithSuffix(dateTotal);
                               } catch (error) {
                                 console.error(
@@ -629,7 +661,7 @@ const AirdropPage: React.FC = () => {
                             : user.account_id}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm sticky left-[200px] bg-black z-10 min-w-[150px]">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm sticky left-[200px] bg-black z-10 min-w-[160px]">
                         <span className="text-[#00F7A5] font-medium">
                           {formatBalance(user.airdrop_balance)}
                         </span>
@@ -639,11 +671,7 @@ const AirdropPage: React.FC = () => {
                         return (
                           <td
                             key={date}
-                            className={`px-6 py-4 whitespace-nowrap text-sm sticky left-[250px] bg-black z-10 min-w-[320px] ${
-                              dateIndex === 0
-                                ? "sticky left-[350px] bg-black z-10"
-                                : ""
-                            }`}
+                            className="px-6 py-4 whitespace-nowrap text-sm min-w-[320px]"
                           >
                             {dateData ? (
                               <div className="space-y-2">
