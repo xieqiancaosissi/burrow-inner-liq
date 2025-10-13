@@ -31,7 +31,7 @@ export default function getConfig(
     default:
       return {
         LIQUIDATION_API_URL: "https://api.liquidation.burrow.finance",
-        NODE_URL: "https://rpc.mainnet.near.org",
+        NODE_URL: "https://near.lava.build",
         walletUrl: "https://wallet.testnet.near.org",
         myNearWalletUrl: "https://testnet.mynearwallet.com/",
         helperUrl: "https://testnet-api.kitwallet.app",
