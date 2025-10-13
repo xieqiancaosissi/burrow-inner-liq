@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   getLiquidations,
   getHistoryData,
@@ -197,7 +197,6 @@ export default function DashBoard() {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
       setLoading(false);
     }
   };
@@ -230,6 +229,7 @@ export default function DashBoard() {
     const mainMarginRecords: any[] = mainMarginRes?.data?.record_list || [];
     const memeRegularRecords: any[] = memeRegularRes?.data?.record_list || [];
     const memeMarginRecords: any[] = memeMarginRes?.data?.record_list || [];
+    
     const tokenIds = new Set<string>();
 
     [
@@ -331,10 +331,10 @@ export default function DashBoard() {
       let community_liquidation_value =
         total_liquidation_value - team_liquidation_value;
       let total_force_count = itemsArr.filter(
-        (i) => i.liquidation_type === "force"
+        (i) => i.liquidation_type === "force_close"
       ).length;
       let total_force_value = itemsArr
-        .filter((i) => i.liquidation_type === "force")
+        .filter((i) => i.liquidation_type === "force_close")
         .reduce(
           (sum, i) =>
             sum +
@@ -415,16 +415,16 @@ export default function DashBoard() {
         0
       );
       let total_force_count = itemsArr.filter(
-        (i) => i.liquidation_type === "force"
+        (i) => i.liquidation_type === "force_close"
       ).length;
       let team_force_count = itemsArr.filter(
         (i) =>
-          i.liquidation_type === "force" &&
+          i.liquidation_type === "force_close" &&
           TEAM_ACCOUNTS.includes(i.liquidation_account_id)
       ).length;
       let community_force_count = total_force_count - team_force_count;
       let total_force_value = itemsArr
-        .filter((i) => i.liquidation_type === "force")
+        .filter((i) => i.liquidation_type === "force_close")
         .reduce(
           (sum, i) =>
             sum +
@@ -442,7 +442,7 @@ export default function DashBoard() {
       let team_force_value = itemsArr
         .filter(
           (i) =>
-            i.liquidation_type === "force" &&
+            i.liquidation_type === "force_close" &&
             TEAM_ACCOUNTS.includes(i.liquidation_account_id)
         )
         .reduce(
@@ -524,10 +524,10 @@ export default function DashBoard() {
         let community_liquidation_value =
           total_liquidation_value - team_liquidation_value;
         let total_force_count = itemsArr.filter(
-          (i) => i.liquidation_type === "force"
+          (i) => i.liquidation_type === "force_close"
         ).length;
         let total_force_value = itemsArr
-          .filter((i) => i.liquidation_type === "force")
+          .filter((i) => i.liquidation_type === "force_close")
           .reduce(
             (sum, i) =>
               sum +
@@ -1146,7 +1146,11 @@ export default function DashBoard() {
           <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
             <DashBoardEChart
                       xAxisData={historyAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
               seriesData={[
                         {
@@ -1178,7 +1182,11 @@ export default function DashBoard() {
           <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
             <DashBoardEChart
                       xAxisData={historyAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
               seriesData={[
                         {
@@ -1210,7 +1218,11 @@ export default function DashBoard() {
           <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
             <DashBoardEChart
                       xAxisData={historyAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
               seriesData={[
                         {
@@ -1228,7 +1240,11 @@ export default function DashBoard() {
           <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
             <DashBoardEChart
                       xAxisData={historyAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
               seriesData={[
                         {
@@ -1253,7 +1269,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1287,7 +1307,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1321,7 +1345,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1355,7 +1383,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1375,7 +1407,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1409,7 +1445,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={mainMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1450,7 +1490,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeRegularHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1484,7 +1528,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeRegularHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1518,7 +1566,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeRegularHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1538,7 +1590,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeRegularHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1565,7 +1621,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1599,7 +1659,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1633,7 +1697,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1667,7 +1735,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1687,7 +1759,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
@@ -1721,7 +1797,11 @@ export default function DashBoard() {
                   <div className="bg-dark-200 bg-opacity-50 p-5 rounded-xl min-h-[320px]">
                     <DashBoardEChart
                       xAxisData={memeMarginHistoryAgg.map(
-                        (d) => new Date(d.date.split(" ~ ")[0]).getTime() / 1000
+                        (d) => (() => {
+                          const dateStr = d.date.split(" ~ ")[0];
+                          const date = new Date(dateStr + "T00:00:00");
+                          return date.getTime() / 1000;
+                        })()
                       )}
                       seriesData={[
                         {
