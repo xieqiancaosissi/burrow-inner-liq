@@ -30,7 +30,7 @@ export default function getConfig(
       };
     default:
       return {
-        LIQUIDATION_API_URL: "https://api.liquidation.burrow.finance",
+        LIQUIDATION_API_URL: "https://apiliq.rhea.finance",
         NODE_URL: "https://near.lava.build",
         walletUrl: "https://wallet.testnet.near.org",
         myNearWalletUrl: "https://testnet.mynearwallet.com/",
